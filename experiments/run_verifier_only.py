@@ -28,7 +28,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 
-from common import RESULTS, ROOT, openai_client, run_meta
+from common import RESULTS, ROOT, client_for, run_meta
 
 from hearsay.authbench import dataset, evaluate, prompts, verifier_only
 from hearsay.authbench.calls import ToolCall
@@ -109,7 +109,7 @@ def main() -> None:
     if out.exists() and any(out.iterdir()) and not (a.overwrite or a.dry_run):
         raise SystemExit(f"{out} exists; pass --overwrite to replace it")
     out.mkdir(parents=True, exist_ok=True)
-    client = ClaimFollowerClient() if a.dry_run else openai_client()
+    client = ClaimFollowerClient() if a.dry_run else client_for(cfg["model"])
     manifest = run_meta(experiment="A: verifier-only", config=cfg, config_file=a.config.as_posix(), dry_run=a.dry_run,
                         dataset={"path": "dataset", "version": DATASET_VERSION, "sha256": dataset_sha256()},
                         authbench_commit=PINNED_COMMIT, prompts_sha256=prompts.fingerprints(),

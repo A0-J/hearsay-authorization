@@ -20,17 +20,21 @@ conference page was available. Novelty claims need a full item-by-item compariso
 - An explicit instruction to reject unverified authorization is not a reliable cross-model fix: residual
   vulnerability in some models, over-refusal in others.
 - It recommends carrying verification status as structured state bound to the claim, and states that it
-  does not implement or validate such an architecture.
+  does not implement or validate such an architecture. Its appendix J tests a **structured in-band**
+  carrier (a JSON status field or typed tags inside the handoff) and finds that whether it survives a
+  summarizer depends on the summarizer, not the format.
 
 So "a downstream verifier believes an upstream claim" and "prompting is not a reliable fix" are prior
 results. This study must not claim them.
 
 ## Where this study differs
 
-1. **The verifier has independent evidence.** Every evidence-provided verifier receives a policy (π) and
-   an approval state (σ) from a trusted runtime, separate from the claim. That is the structured state
-   *Silence Is Endorsement* recommends. The question is whether claims still change decisions once that
-   evidence is present: **Claim Non-Amplification**, Allow(a, π, σ, c) = Allow(a, π, σ, ∅).
+1. **Runtime-managed, out-of-band evidence.** Every evidence-provided verifier receives a policy (π) and an
+   approval state (σ) that a trusted runtime looks up from the action, outside the handoff and
+   independent of the claim. *Silence Is Endorsement* studies status carried in the handoff, structured
+   or not. The question here is whether claims still change decisions once such external evidence is
+   present, and how that depends on the evidence's completeness and uncertainty states: **Claim
+   Non-Amplification**, Allow(a, π, σ, c) = Allow(a, π, σ, ∅).
 2. **The state of the evidence is the manipulated variable.** It can be valid, silently absent, explicitly
    absent, explicitly invalid (expired, revoked, out of scope), mismatched (wrong id, other valid
    approval), unavailable, or partial. The pilot's observation concerns exactly this split. Claims were

@@ -1,4 +1,5 @@
-"""OpenAI Responses API calls: sampling settings, single-shot completions and usage accounting."""
+"""LLM calls through the OpenAI Responses API shape (OpenAI, or Claude via hearsay.anthropic_client):
+sampling settings, single-shot completions and usage accounting."""
 
 from __future__ import annotations
 
@@ -10,7 +11,11 @@ DEFAULT_SAMPLING_MODELS = frozenset({"gpt-5.5", "gpt-6.1-sol"})   # reject tempe
 
 
 def sampling_for(model: str) -> dict[str, float]:
-    return {} if model in DEFAULT_SAMPLING_MODELS else {"temperature": 1.0, "top_p": 1.0}
+    if model in DEFAULT_SAMPLING_MODELS:
+        return {}
+    if model.startswith("claude-"):              # Claude: temperature only (temperature and top_p together are rejected)
+        return {"temperature": 1.0}
+    return {"temperature": 1.0, "top_p": 1.0}
 
 
 def usage_of(response: Any) -> Counter:

@@ -23,6 +23,21 @@ N_RESTATE = 5       # coordinator restatements per base task (the semantic flow'
 API_MAX_RETRIES = 8
 
 
+ANTHROPIC_KEY_FILE = ROOT / "anthropic_api_key.txt"   # gitignored; used only when ANTHROPIC_API_KEY is not set
+
+
+def anthropic_client():
+    from hearsay.anthropic_client import AnthropicClient
+    key = os.environ.get("ANTHROPIC_API_KEY") or (
+        ANTHROPIC_KEY_FILE.read_text(encoding="utf-8").strip() if ANTHROPIC_KEY_FILE.exists() else "")
+    return AnthropicClient(key, max_retries=API_MAX_RETRIES)
+
+
+def client_for(model: str):
+    """The API client that serves `model` (Claude models through the Anthropic adapter)."""
+    return anthropic_client() if model.startswith("claude-") else openai_client()
+
+
 def openai_client():
     from openai import OpenAI
     if not os.environ.get("OPENAI_API_KEY") and KEY_FILE.exists():
