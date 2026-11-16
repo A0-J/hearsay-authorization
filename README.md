@@ -46,3 +46,30 @@ query the approval system), `--resume` (re-run errored episodes only).
 
 Each episode in `results/<name>/episodes.jsonl` keeps every model output, tool call, guard decision
 and verifier vote.
+
+## AuthorizationBench runtime (in progress)
+
+The runtime is moving onto original [AuthorizationBench](https://github.com/PEACH-Research-Lab/AuthorizationBench)
+tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and its status.
+
+| path | what |
+|---|---|
+| `src/hearsay/authbench/task.py` | a task bundle: instruction, sealed prompt, blueprint tool allowlist |
+| `src/hearsay/authbench/runtime.py` | environment, the router every executor call goes through, one episode |
+| `src/hearsay/authbench/calls.py` | which business calls change state (and pass the verifier) |
+| `src/hearsay/authbench/approvals.py` | the independent approval record |
+| `src/hearsay/authbench/verify.py` | verification methods, all judging the same proposal (shadow) |
+| `src/hearsay/authbench/selfcheck.py` | blocked calls never reach the service (live check, 0 API calls) |
+| `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
+
+```bash
+python experiments/fetch_authbench.py                 # clone the benchmark at the pinned commit
+pip install -e .[dev,authbench]
+# Windows: set PYTHONUTF8=1 (the benchmark reads its UTF-8 bundles with the default encoding)
+python -m hearsay.authbench.selfcheck --task T0010-l-b-h
+python experiments/run_authbench.py --task T0010-l-b-h --dry-run      # 0 API calls
+python experiments/run_authbench.py --task T0010-l-b-h --name smoke   # gpt-4.1 for every role
+```
+
+Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker
+agent container, which is not wired yet.

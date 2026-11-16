@@ -38,7 +38,9 @@ def _dump(item: Any) -> dict[str, Any]:
 
 
 def run_agent(client: Any, *, model: str, instructions: str, user_input: str, tools: list[dict[str, Any]],
-              handle: ToolHandler, max_turns: int = 8) -> AgentRun:
+              handle: ToolHandler, max_turns: int = 8,
+              after_turn: Callable[[int], bool] | None = None) -> AgentRun:
+    """`after_turn(turn)` runs after each turn's tool calls; returning True ends the run (e.g. a finish tool)."""
     run = AgentRun()
     items: list[Any] = [{"role": "user", "content": user_input}]
     for turn in range(max_turns):
@@ -62,5 +64,8 @@ def run_agent(client: Any, *, model: str, instructions: str, user_input: str, to
                 args, result = {"raw": c.arguments}, {"error": "arguments are not valid JSON"}
             run.tool_calls.append({"turn": turn, "tool": c.name, "args": args, "result": result})
             items.append({"type": "function_call_output", "call_id": c.call_id, "output": json.dumps(result)})
+        if after_turn is not None and after_turn(turn):
+            run.stop = "stopped"
+            return run
     run.stop = "max_turns"
     return run

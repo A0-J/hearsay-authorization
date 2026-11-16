@@ -14,10 +14,10 @@ sys.path.insert(0, str(ROOT / "src"))
 RESULTS = ROOT / "results"
 KEY_FILE = ROOT / "openai_api_key.txt"   # gitignored; used only when OPENAI_API_KEY is not set
 
-COORDINATOR_MODEL = "gpt-4o-mini"
-EXECUTOR_MODEL = "gpt-4.1"
-VERIFIER_MODEL = "gpt-4.1"
-RESTATE_MODEL = "gpt-4o-mini"
+# One model for every LLM role: the independent variable is the evidence a verifier sees, not the model.
+# Mixed models belong only to the separate model-comparison experiments.
+MODEL = "gpt-4.1"
+COORDINATOR_MODEL = EXECUTOR_MODEL = VERIFIER_MODEL = RESTATE_MODEL = MODEL
 N_VERIFY = 3        # verifier votes per guarded call (strict majority approves)
 N_RESTATE = 5       # coordinator restatements per base task (the semantic flow's reference)
 API_MAX_RETRIES = 8

@@ -54,12 +54,12 @@ class IntentCache:
             return self._intent[s.base_id]
 
 
-def llm_verify(client: Any, model: str, s: Scenario, p: Proposal, delegation: str, kind: str,
-               n: int) -> dict[str, Any]:
-    """n verifier calls; approve on a strict majority of parseable "approve" votes (a tie rejects)."""
+def majority_vote(client: Any, model: str, instructions: str, input_text: str, n: int) -> dict[str, Any]:
+    """n verifier calls; approve on a strict majority of parseable "approve" votes (a tie or a parse error
+    rejects)."""
     votes = []
     for _ in range(n):
-        call = complete(client, model, VERIFIER_INSTRUCTIONS[kind], verifier_input(s, p, delegation, kind))
+        call = complete(client, model, instructions, input_text)
         try:
             obj = parse_json_object(call["text"])
             call["approve"] = str(obj.get("decision", "")).strip().lower() == "approve"
@@ -69,6 +69,11 @@ def llm_verify(client: Any, model: str, s: Scenario, p: Proposal, delegation: st
         votes.append(call)
     approvals = sum(v["approve"] for v in votes)
     return {"approve": approvals * 2 > n, "approvals": approvals, "n": n, "votes": votes}
+
+
+def llm_verify(client: Any, model: str, s: Scenario, p: Proposal, delegation: str, kind: str,
+               n: int) -> dict[str, Any]:
+    return majority_vote(client, model, VERIFIER_INSTRUCTIONS[kind], verifier_input(s, p, delegation, kind), n)
 
 
 class Guard:
