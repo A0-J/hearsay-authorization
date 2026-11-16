@@ -339,3 +339,27 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
     second source.
 - **The 8–12 new-task review is paused** at the pre-screen until the design and the second-source decision
   are confirmed, so that task selection precedes any result.
+
+### 2026-11-16 — Experiment 1 run 1 (GPT-4.1) completed
+
+- **Setup:**
+  - pre-registration `e5fb9fd`, plus Amendment 1 `9c5de02`, written before any result was inspected;
+  - dataset v1.0.0-exp1: 11 new source cases, 1,276 cells;
+  - run on commit `0c6f1b0`: 3,828 calls, 0 parse errors, $7.53.
+- **Where things are:** raw replies are archived (`results/registry.json`); the analysis is in
+  `results/E1-gpt-4.1-run1/analysis/` (REPORT.md, tests.json, cell tables, failures, PNG plots).
+- **Observed** (reported without interpretation; details in REPORT.md):
+  - The primary hypotheses H1–H3 were not supported after Holm correction.
+    - H1 positive claims on invalid evidence, evidence-aware: +0.66 points [+0.09, +1.33], sign-flip
+      p = 0.125, Holm 0.375.
+    - H2: +0.57 points, Holm 1.0.
+    - H3: −1.52 points, Holm 1.0.
+  - Secondary H5: the negative claim lowered approval on valid evidence by 82.6 points under
+    evidence-aware. It was negative in all 11 tasks (p = 0.001), and 0 under evidence-explicit.
+  - The not-required controls were approved in every call.
+  - Pilot-format replication: abs_list with a specific claim 6.1%, against the pilot's 45%.
+  - Amendment 1 (evidence-competent cells): invalid-side flips 0.66%; valid-side flips under the
+    negative claim 82.6%.
+  - The GEE did not yield usable standard errors (near-separation).
+- **Not done:** the Claude replication on the same frozen cells (`configs/exp1_claude_sonnet55.json`
+  is ready).

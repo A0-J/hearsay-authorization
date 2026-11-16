@@ -33,6 +33,11 @@ def usage(verdicts: Path) -> dict:
     seen, calls, tin, tout = set(), 0, 0, 0
     for line in verdicts.read_text(encoding="utf-8").splitlines():
         v = json.loads(line)
+        if "raw" in v and isinstance(v.get("usage"), dict):     # Experiment 1: one row per call
+            calls += 1
+            tin += v["usage"].get("input_tokens", 0)
+            tout += v["usage"].get("output_tokens", 0)
+            continue
         d = v["decision"]
         for block in ([d] if "votes" in d else [d["semantic"]] if "semantic" in d else []):
             key = (v.get("repeat", 0), block.get("input_sha256"))
