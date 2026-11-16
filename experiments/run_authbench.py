@@ -26,7 +26,6 @@ environment; it uses --oracle-model (default: --model) through litellm.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
@@ -48,9 +47,7 @@ from hearsay.authbench.verify import METHODS  # noqa: E402
 
 
 def prompt_hashes() -> dict[str, str]:
-    texts = {"planner": prompts.PLANNER_INSTRUCTIONS, "executor_planner_frame": prompts.EXECUTOR_PLANNER_FRAME,
-             **{f"verifier_{k}": v for k, v in prompts.VERIFIER_INSTRUCTIONS.items()}}
-    return {k: hashlib.sha256(v.encode()).hexdigest()[:16] for k, v in texts.items()}
+    return prompts.fingerprints()
 
 
 def main() -> None:

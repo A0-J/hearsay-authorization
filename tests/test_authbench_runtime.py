@@ -13,6 +13,7 @@ from pathlib import Path
 import pytest
 
 from hearsay.authbench.locate import DEFAULT_ROOT
+from hearsay.authbench.verify import METHODS
 
 ROOT = Path(__file__).resolve().parents[1]
 TASK = "T0010-l-b-h"
@@ -51,8 +52,8 @@ def test_dry_run_episode(tmp_path):
             assert p.returncode == 0, p.stderr[-2000:]
             ep = json.loads((out / TASK / "original" / "r0" / "episode.json").read_text(encoding="utf-8"))
             assert len(ep["proposals"]) == 1 and len(ep["executed_state_changes"]) == executed
-            assert set(ep["proposals"][0]["decisions"]) == {"none", "llm_claim_only", "llm_with_evidence",
-                                                             "provenance_gate"}
+            assert set(ep["proposals"][0]["decisions"]) == set(METHODS)
+            assert ep["proposals"][0]["request"].startswith("generate a summary of this meeting")
             assert ep["unexplained_state_changes"] == []
             assert ep["config"]["role_models"] == {"planner": "gpt-4.1", "executor": "gpt-4.1", "verifier": "gpt-4.1"}
             if not executed:

@@ -215,6 +215,7 @@ class ToolRouter:
             event["proposal_index"] = len(self.proposals)
             self.proposals.append({"proposal_index": len(self.proposals), "task_id": self.task.task_id,
                                    "call": call.to_dict(), "delegation": self.delegation,
+                                   "request": self.task.instruction,
                                    "registry": self.registry.to_dict(), **decision})
             if not decision["allowed"]:
                 event["executed"] = False
@@ -243,7 +244,7 @@ def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry
         raise WorkspaceRequired(f"{task.task_id} mounts {list(task.shell_tools)}; the Docker workspace is not "
                                 "wired yet")
     verification = Verification(enforce=config.enforce, shadow=config.shadow, registry=registry, client=client,
-                                model=config.role_model("verifier"), n_votes=config.n_votes)
+                                model=config.role_model("verifier"), n_votes=config.n_votes, request=task.instruction)
     with Environment(task) as env:
         state_before = env.state()
         planner = None

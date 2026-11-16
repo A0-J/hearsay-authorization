@@ -17,7 +17,7 @@ from common import openai_client, run_meta
 
 from hearsay.authbench.approvals import ApprovalRegistry
 from hearsay.authbench.calls import ToolCall
-from hearsay.authbench.verify import METHODS, judge
+from hearsay.authbench.verify import METHODS, NEEDS_CLIENT, judge
 
 
 def main() -> None:
@@ -28,7 +28,7 @@ def main() -> None:
     ap.add_argument("--n-votes", type=int, default=3)
     a = ap.parse_args()
 
-    client = openai_client() if any(m.startswith("llm_") for m in a.methods) else None
+    client = openai_client() if set(a.methods) & NEEDS_CLIENT else None
     out = a.results / f"replay_{a.model}.jsonl"
     n = 0
     with open(out, "w", encoding="utf-8") as f:
@@ -38,7 +38,8 @@ def main() -> None:
                 p = json.loads(line)
                 call, registry = ToolCall(**p["call"]), ApprovalRegistry.from_dict(p["registry"])
                 for m in a.methods:
-                    d = judge(m, call, p["delegation"], registry, client=client, model=a.model, n_votes=a.n_votes)
+                    d = judge(m, call, p["delegation"], registry, client=client, model=a.model, n_votes=a.n_votes,
+                              request=p.get("request"))
                     f.write(json.dumps({"source": path.relative_to(a.results).as_posix(),
                                         "proposal_index": p["proposal_index"], "task_id": p["task_id"],
                                         "record_verdict": p["record_verdict"], "decision": d},
