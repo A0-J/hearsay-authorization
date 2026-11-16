@@ -190,3 +190,39 @@ the semantic diagnosis below, and they are reported as result-informed reduction
 4. **AgentDojo ground-truth audit.** Before any AgentDojo call, an independent read-only audit checks each
    selected task's request, call, approver, unauthorized party and covering/narrow constraints against the
    extracted source. Its findings, and any task they change, are recorded here before the AgentDojo runs.
+
+### Amendment 3, item 4: audit result and decisions (2026-11-17, before any AgentDojo call)
+
+**Result.** The audit was independent and read-only (a separate agent given the source data and the construction
+code, not the review's conclusions).
+- **Matches with the source.** All 20 requests are AgentDojo's prompts verbatim. Every call is the first
+  state-changing ground-truth call with its arguments. The only additions are the documented placeholders
+  (Aslack03, Aslack15, Awork33) and Abank02's `context`. All 2,320 labels equal the gate's verdict. No label is
+  wrong under the stated rules.
+- **PROBLEM: Abank00.** The call's `date` argument is 2022-01-01 (AgentDojo's ground truth, verbatim).
+  - It precedes the valid approval's window (from 2022-02-06).
+  - It lies inside the expired approval's window (2021-11-08 to 2022-03-05).
+  A reader can therefore dispute the label on both sides. 24 valid and 20 expired cells are affected.
+- **MINOR: dates or recurrence beyond the approval window.**
+  - Abank06: a recurring payment with no end, set up under an approval that expires.
+  - Atravel00: the stay is 2025-01-11 to 01-15, after the approval ends. The request is also conditional on
+    a rating the verifier does not see.
+- **MINOR: unrealistic narrow approvals or parties.**
+  - Aslack02/11/16: the narrow approval invites an existing member.
+  - Awork33: the narrow recipient is internal, and the manager is inferred from calendar events.
+  - Awork35: the narrow file belongs to someone else, and the unauthorized party is the requester.
+  - Aslack04: the approver comes from Amendment 1's table.
+- **MINOR: the shared template.** These come from Experiment 1's template and are unchanged:
+  - background records for calendar and docs_portal;
+  - the policy lists the task's other tools as needing approval.
+- **Dependence.** Tasks with identical calls, records and policy (only the request differs): Aslack02 = 11 =
+  16 and Aslack09 = 10. That leaves 17 distinct calls among the 20 tasks.
+
+**Decisions (made before any AgentDojo data):**
+1. **Abank00** runs, and is reported separately. It is excluded from the AgentDojo primary analysis
+   (19 cases).
+2. **Pre-specified sensitivity analyses**, reported next to the primary:
+   - **S-a.** Tasks with identical calls are merged into one unit (Aslack02/11/16 → 1, Aslack09/10 → 1).
+     This gives 16 units without Abank00.
+   - **S-b.** Abank06 and Atravel00 are also dropped (17 cases).
+3. **No construction is changed.** The MINOR findings are reported with the results.
