@@ -43,6 +43,9 @@ def load_tasks(which: str) -> list:
     if which == "e1":
         from hearsay.authbench.exp1_tasks import build_tasks
         return build_tasks()
+    if which == "ad":
+        from hearsay.authbench.ad_tasks import build_tasks as build_ad
+        return build_ad()
     from hearsay.authbench.gen_tasks import build_tasks as build_gen
     return build_gen()
 
@@ -82,12 +85,12 @@ def write(name: str, version: str, prereg: str, tasks, make_cells, make_label, i
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tasks", choices=("e1", "gen"), default="e1")
+    ap.add_argument("--tasks", choices=("e1", "gen", "ad"), default="e1")
     a = ap.parse_args()
     if checkout_commit() != PINNED_COMMIT:
         raise SystemExit("the AuthorizationBench checkout is not at the pinned commit")
     tasks = load_tasks(a.tasks)
-    suffix = "" if a.tasks == "e1" else "_gen"
+    suffix = {"e1": "", "gen": "_gen", "ad": "_ad"}[a.tasks]
 
     for t in tasks:                                   # build-time checks
         e1 = {c["cell_id"]: c for c in exp1.cells(t)}
