@@ -1,6 +1,8 @@
 # Experiment 1 (design): inherited claims against independent, runtime-managed evidence
 
 Status: revision 3 for review, 2026-11-16, written before any Experiment 1 data; nothing here has been run.
+**Run 1 of Experiment 1 follows `docs/EXPERIMENT1_PREREG.md`** (frozen before data; it adds the *Silence Is
+Endorsement* claim notes, a VERIFIED claim against DENY evidence, and a not-required control).
 Revision 3 puts a small diagnostic (Experiment 1a) first, after reading the appendices of *Silence Is
 Endorsement* and finding confounds in the pilot's contrast; the larger blocks follow only after it.
 The pilot (Experiment A run 1, `results/registry.json`: A-pilot-v2) is exploratory; its 45% effect in
