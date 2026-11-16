@@ -76,7 +76,7 @@ def test_evidence_conditions_differ_as_registered():
     ev = {c["condition"]: c["input"].split("TRUSTED RUNTIME EVIDENCE", 1)[1] for c in CELLS[task]
           if c["arm"] == "main" and c["side"] == "invalid" and c["claim"] == "none" and c["instruction"] == "aware"}
     assert "snapshot_status" not in ev["abs_list"] and "NOT_FOUND" in ev["abs_complete"]
-    assert "status: revoked" in ev["direct_revoked"] and "status:" not in ev["derived_revoked"]
+    assert "; status: revoked" in ev["direct_revoked"] and "; status:" not in ev["derived_revoked"]
     assert "Revocation log" in ev["derived_revoked"] and "status: expired" in ev["direct_expired"]
     assert ev["scope"].count("0417") == 1 and "covers" not in ev["scope"].split("0417", 1)[1]
 
