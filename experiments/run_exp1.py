@@ -1,4 +1,5 @@
-"""Run Experiment 1 (verifier-only) on the frozen cells of dataset/exp1/.
+"""Run a verifier-only experiment on the frozen cells of a dataset (default dataset/exp1/; a config's
+"dataset_dir" selects another, e.g. exp2, exp2_defer, ablation).
 
     python experiments/run_exp1.py --config configs/exp1_gpt41.json --plan       # counts and token estimate
     python experiments/run_exp1.py --config configs/exp1_gpt41.json --dry-run    # fake client, 0 API calls
@@ -26,23 +27,24 @@ from hearsay.llm import complete, sampling_for
 from hearsay.parsing import parse_json_object
 
 DATA = ROOT / "dataset" / "exp1"
+DECISIONS = ("approve", "reject")
 
 
-def load_cells() -> list[dict]:
+def load_cells(data: Path = DATA) -> list[dict]:
     cells = []
-    for d in sorted((DATA / "tasks").iterdir()):
+    for d in sorted((data / "tasks").iterdir()):
         cells += [json.loads(line) for line in (d / "cells.jsonl").read_text(encoding="utf-8").splitlines()]
     return cells
 
 
-def parse(text: str) -> dict:
+def parse(text: str, decisions=DECISIONS) -> dict:
     try:
         obj = parse_json_object(text)
     except ValueError as e:
         return {"approve": False, "decision": None, "basis": None, "reason": None, "parse_error": str(e)}
     decision = str(obj.get("decision", "")).strip().lower()
     return {"approve": decision == "approve", "decision": decision, "basis": obj.get("basis"),
-            "reason": obj.get("reason"), "parse_error": None if decision in ("approve", "reject") else "bad decision"}
+            "reason": obj.get("reason"), "parse_error": None if decision in decisions else "bad decision"}
 
 
 class FakeClient:
@@ -65,8 +67,10 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
     cfg = json.loads(a.config.read_text(encoding="utf-8"))
-    manifest = json.loads((DATA / "manifest.json").read_text(encoding="utf-8"))
-    instructions = json.loads((DATA / "instructions.json").read_text(encoding="utf-8"))
+    data = ROOT / "dataset" / cfg.get("dataset_dir", "exp1")
+    request = cfg.get("request", {})      # per-run request options, e.g. {"thinking": {"type": "between_tools"}}
+    manifest = json.loads((data / "manifest.json").read_text(encoding="utf-8"))
+    instructions = json.loads((data / "instructions.json").read_text(encoding="utf-8"))
     problems = []
     if manifest["version"] != cfg["dataset_version"]:
         problems.append(f"dataset {manifest['version']} != config {cfg['dataset_version']}")
@@ -78,8 +82,9 @@ def main() -> int:
     if problems:
         raise SystemExit("config check failed: " + "; ".join(problems))
 
-    cells = load_cells()
+    cells = load_cells(data)
     by_hash = {v["sha256"]: v["text"] for v in instructions.values()}
+    allowed = {v["sha256"]: tuple(v.get("decisions", DECISIONS)) for v in instructions.values()}
     work = [(c, r) for r in range(cfg["repeats"]) for c in cells]
     chars = sum(len(c["input"]) + len(by_hash[c["instructions_sha256"]]) for c in cells) * cfg["repeats"]
     print(f"{len(cells)} cells x {cfg['repeats']} repeats = {len(work)} calls; ~{chars / 4 / 1e6:.2f}M input tokens "
@@ -98,7 +103,7 @@ def main() -> int:
     todo = [(c, r) for c, r in work if (c["cell_id"], r) not in done]
     if not (out / "manifest.json").exists():
         (out / "manifest.json").write_text(json.dumps(run_meta(
-            experiment="Experiment 1 run 1 (verifier-only)", config=cfg, config_file=a.config.as_posix(),
+            experiment=cfg.get("experiment", "Experiment 1 run 1 (verifier-only)"), config=cfg, config_file=a.config.as_posix(),
             dry_run=a.dry_run, dataset=manifest, packages={p: metadata.version(p) for p in ("openai", "requests")},
             calls_planned=len(work)), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"{len(done)} already recorded, {len(todo)} to run -> {out.relative_to(ROOT)}")
@@ -106,11 +111,13 @@ def main() -> int:
     lock, n = threading.Lock(), 0
 
     def one(cell, r):
-        res = complete(client, cfg["model"], by_hash[cell["instructions_sha256"]], cell["input"])
+        res = complete(client, cfg["model"], by_hash[cell["instructions_sha256"]], cell["input"], **request)
         return {"cell_id": cell["cell_id"], "repeat": r,
                 **{k: cell[k] for k in ("task_id", "arm", "instruction", "side", "condition", "claim",
                                         "input_sha256", "instructions_sha256")},
-                "raw": res["text"], **parse(res["text"]), "served_model": res["served_model"],
+                **{k: cell[k] for k in cell if k not in ("input", "cell_id")},
+                "raw": res["text"], **parse(res["text"], allowed[cell["instructions_sha256"]]),
+                "served_model": res["served_model"], "stop_reason": res.get("stop_reason"),
                 "usage": res["usage"], "latency_ms": res["latency_ms"]}
 
     with open(path, "a", encoding="utf-8") as f, ThreadPoolExecutor(max_workers=cfg["workers"]) as pool:

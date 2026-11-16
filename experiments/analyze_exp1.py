@@ -39,13 +39,15 @@ SEQ = ["#fcfcfb", "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f9
 
 def load(run: Path):
     verdicts = [json.loads(x) for x in (run / "verdicts.jsonl").read_text(encoding="utf-8").splitlines()]
+    cfg = json.loads((run / "manifest.json").read_text(encoding="utf-8"))["config"]
+    data = ROOT / "dataset" / cfg.get("dataset_dir", "exp1")      # exp1, or the generalization tasks' exp1_gen
     labels = {}
-    for d in sorted((DATA / "tasks").iterdir()):
+    for d in sorted((data / "tasks").iterdir()):
         for x in (d / "labels.jsonl").read_text(encoding="utf-8").splitlines():
             lab = json.loads(x)
             labels[lab["cell_id"]] = lab
     types = {d.name: json.loads((d / "spec.json").read_text(encoding="utf-8"))["task_type"]
-             for d in (DATA / "tasks").iterdir()}
+             for d in (data / "tasks").iterdir()}
     return verdicts, labels, types
 
 

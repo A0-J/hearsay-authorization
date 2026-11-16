@@ -388,3 +388,25 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
   - In 113 of the 132 evidence-aware replies, the reason says the withdrawal is not reflected in the
     records.
   - All 792 valid-side approvals cite the covering approval's id.
+
+### 2026-11-16 — Research program fixed; Experiment 2, DEFER, ablation and model panel pre-registered
+
+- **Program:** docs/RESEARCH_PROGRAM.md.
+  - RQ1 phenomenon, RQ2 cause, RQ3 response, with a thesis mapping and the run matrix.
+  - H5 is a post-hoc-selected effect. It is re-tested on the same tasks (Experiment 2 block A). Its
+    confirmatory test is on new tasks (generalization).
+- **Pre-registrations, committed before any of their data:**
+  - EXPERIMENT2_PREREG.md: timing × source × record policy × instruction × evidence, fully crossed, plus
+    an anchor block. Primary tests P1 and P2; S1–S6 secondary.
+  - EXPERIMENT2_DEFER_PREREG.md: exploratory.
+  - ABLATION_PREREG.md
+  - MODEL_PANEL_PREREG.md
+  - GENERALIZATION_PREREG.md: selection rule; the unit of independence is the case.
+  - EXPERIMENT3_E2E_PREREG.md
+- **Environment check:**
+  - one real call per new setting: gpt-4.1-mini, gpt-4o, gpt-5.5, claude-sonnet-5-5 between_tools and
+    adaptive, claude-haiku-5-5, claude-sonnet-4-6. These calls are not counted as data.
+  - dry runs of every new dataset and analysis script.
+- **Case expansion:** 74 (case, domain) pairs from 23 cases are to review
+  (docs/screening/generalization_candidates.csv).
+- **Fig/Table 1–4 and the error-cause classification** from the existing runs are in `results/E1-figures/`.

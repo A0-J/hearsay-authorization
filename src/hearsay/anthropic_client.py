@@ -27,11 +27,13 @@ class _Responses:
 
     def create(self, *, model: str, instructions: str, input: Any, temperature: float | None = None,
                top_p: float | None = None, max_output_tokens: int | None = None, tools: Any = None,
-               **_: Any) -> SimpleNamespace:
+               thinking: dict[str, Any] | None = None, **_: Any) -> SimpleNamespace:
         if tools:
             raise AnthropicError("tool use is not supported by this client")
         body: dict[str, Any] = {"model": model, "max_tokens": max_output_tokens or self.client.max_tokens,
                                 "system": instructions, "messages": [{"role": "user", "content": str(input)}]}
+        if thinking is not None:                       # e.g. {"type": "between_tools"}: no thinking before the reply
+            body["thinking"] = thinking
         if temperature is not None:
             body["temperature"] = temperature
         elif top_p is not None:
