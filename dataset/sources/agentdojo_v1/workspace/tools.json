@@ -1,0 +1,905 @@
+[
+  {
+    "name": "send_email",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.\n\n:param recipients: The list with the email addresses of the recipients.\n:param subject: The subject of the email.\n:param body: The body of the email.\n:param attachments: The list of attachments to include in the email. If `null`, no attachments are included.\nIf the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the\ncloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\".\nA calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`\n(in ISO format), `location`, and participants (a list of emails).\n:param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.\n:param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.",
+    "description": "Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.",
+    "params": [
+      {
+        "name": "recipients",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The list with the email addresses of the recipients."
+      },
+      {
+        "name": "subject",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The subject of the email."
+      },
+      {
+        "name": "body",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The body of the email."
+      },
+      {
+        "name": "attachments",
+        "annotation": "list[dict] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of attachments to include in the email. If `null`, no attachments are included. If the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the cloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\". A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time` (in ISO format), `location`, and participants (a list of emails)."
+      },
+      {
+        "name": "cc",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of email addresses to include in the CC field. If `null`, no email addresses are included."
+      },
+      {
+        "name": "bcc",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of email addresses to include in the BCC field. If `null`, no email addresses are included."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "Email",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "send",
+      "body_mutations": [
+        "via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Sends"
+      ]
+    },
+    "body_source": "def send_email(\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    recipients: list[str],\n    subject: str,\n    body: str,\n    attachments: list[dict] | None = None,\n    cc: list[str] | None = None,\n    bcc: list[str] | None = None,\n) -> Email:\n    \"\"\"Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.\n\n    :param recipients: The list with the email addresses of the recipients.\n    :param subject: The subject of the email.\n    :param body: The body of the email.\n    :param attachments: The list of attachments to include in the email. If `null`, no attachments are included.\n    If the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the\n    cloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\".\n    A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`\n    (in ISO format), `location`, and participants (a list of emails).\n    :param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.\n    :param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.\n    \"\"\"\n    if attachments is not None:\n        parsed_attachments = []\n        for attachment in attachments:\n            if not isinstance(attachment, dict):\n                raise ValueError(\"Attachments must be dictionaries.\")\n            if \"type\" not in attachment:\n                raise ValueError(\"Attachment must have a 'type' field.\")\n            if attachment[\"type\"] == \"file\" or \"file_id\" in attachment:\n                if \"file_id\" not in attachment:\n                    raise ValueError(\"Attachment of type 'file' must have a 'file_id' field.\")\n                parsed_attachments.append(CloudDriveFileID(attachment[\"file_id\"]))\n            else:\n                if \"event_details\" not in attachment:\n                    raise ValueError(\"Attachment of type 'event' must have an 'event_details' field.\")\n                parsed_attachments.append(CalendarEvent(**attachment[\"event_details\"]))\n    else:\n        parsed_attachments = None\n    return inbox.send_email(recipients, subject, body, parsed_attachments, cc, bcc)"
+  },
+  {
+    "name": "delete_email",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Deletes the email with the given `email_id` from the inbox.\n\n:param email_id: The id of the email to delete.",
+    "description": "Deletes the email with the given `email_id` from the inbox.",
+    "params": [
+      {
+        "name": "email_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The id of the email to delete."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "str",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "delete",
+      "body_mutations": [
+        "via Inbox.delete_email: self.trash[email_id] = email",
+        "via Inbox.delete_email: self.emails.pop(email_id)"
+      ],
+      "docstring_phrases": [
+        "Deletes"
+      ]
+    },
+    "body_source": "def delete_email(inbox: Annotated[Inbox, Depends(\"inbox\")], email_id: str) -> str:\n    \"\"\"Deletes the email with the given `email_id` from the inbox.\n\n    :param email_id: The id of the email to delete.\n    \"\"\"\n    inbox.delete_email(email_id)\n    return f\"Email with id {email_id} deleted successfully.\""
+  },
+  {
+    "name": "get_unread_emails",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Returns all the unread emails in the inbox. Each email has a sender, a subject, and a body.\nThe emails are marked as read after this function is called.",
+    "description": "Returns all the unread emails in the inbox. Each email has a sender, a subject, and a body.\nThe emails are marked as read after this function is called.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[Email]",
+    "classification": "read",
+    "classification_certain": false,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [
+        "via Inbox.get_unread: email.read = True"
+      ],
+      "docstring_phrases": [
+        "marked as"
+      ],
+      "uncertain_reason": "name verb 'get' suggests read; body mutates state: via Inbox.get_unread: email.read = True; docstring says: marked as"
+    },
+    "body_source": "def get_unread_emails(inbox: Annotated[Inbox, Depends(\"inbox\")]) -> list[Email]:\n    \"\"\"Returns all the unread emails in the inbox. Each email has a sender, a subject, and a body.\n    The emails are marked as read after this function is called.\"\"\"\n    return inbox.get_unread()"
+  },
+  {
+    "name": "get_sent_emails",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Returns all the sent emails in the inbox. Each email has a recipient, a subject, and a body.",
+    "description": "Returns all the sent emails in the inbox. Each email has a recipient, a subject, and a body.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[Email]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_sent_emails(inbox: Annotated[Inbox, Depends(\"inbox\")]) -> list[Email]:\n    \"\"\"Returns all the sent emails in the inbox. Each email has a recipient, a subject, and a body.\"\"\"\n    return inbox.sent"
+  },
+  {
+    "name": "get_received_emails",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Returns all the received emails in the inbox. Each email has a sender, a subject, and a body.",
+    "description": "Returns all the received emails in the inbox. Each email has a sender, a subject, and a body.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[Email]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_received_emails(inbox: Annotated[Inbox, Depends(\"inbox\")]) -> list[Email]:\n    \"\"\"Returns all the received emails in the inbox. Each email has a sender, a subject, and a body.\"\"\"\n    return inbox.received"
+  },
+  {
+    "name": "get_draft_emails",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Returns all the draft emails in the inbox. Each email has a recipient, a subject, and a body.",
+    "description": "Returns all the draft emails in the inbox. Each email has a recipient, a subject, and a body.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[Email]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_draft_emails(inbox: Annotated[Inbox, Depends(\"inbox\")]) -> list[Email]:\n    \"\"\"Returns all the draft emails in the inbox. Each email has a recipient, a subject, and a body.\"\"\"\n    return inbox.drafts"
+  },
+  {
+    "name": "search_emails",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Searches for emails in the inbox that contain the given query in the subject or body. If `address` is provided,\nonly emails from that address are searched.\n\n:param query: The query to search for in the email subject or body. If empty, all emails are returned.\n:param sender: The email address of the sender. If `null`, all emails are searched. Use `search_contacts_by_name`\nif the email address is unknown.",
+    "description": "Searches for emails in the inbox that contain the given query in the subject or body. If `address` is provided,\nonly emails from that address are searched.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The query to search for in the email subject or body. If empty, all emails are returned."
+      },
+      {
+        "name": "sender",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The email address of the sender. If `null`, all emails are searched. Use `search_contacts_by_name` if the email address is unknown."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[Email]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_emails(\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    query: str,\n    sender: str | None = None,\n) -> list[Email]:\n    \"\"\"Searches for emails in the inbox that contain the given query in the subject or body. If `address` is provided,\n    only emails from that address are searched.\n\n    :param query: The query to search for in the email subject or body. If empty, all emails are returned.\n    :param sender: The email address of the sender. If `null`, all emails are searched. Use `search_contacts_by_name`\n    if the email address is unknown.\n    \"\"\"\n    matches = inbox.search_emails(query, sender)\n    if len(matches) == 0:\n        raise ValueError(\"No emails found. Try with a different query.\")\n    return matches"
+  },
+  {
+    "name": "search_contacts_by_name",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Finds contacts in the inbox's contact list by name.\nIt returns a list of contacts that match the given name.\n\n:param query: The name of the contacts to search for.",
+    "description": "Finds contacts in the inbox's contact list by name.\nIt returns a list of contacts that match the given name.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The name of the contacts to search for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[EmailContact]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_contacts_by_name(inbox: Annotated[Inbox, Depends(\"inbox\")], query: str) -> list[EmailContact]:\n    \"\"\"Finds contacts in the inbox's contact list by name.\n    It returns a list of contacts that match the given name.\n\n    :param query: The name of the contacts to search for.\n    \"\"\"\n    return inbox.find_contacts_by_name(query)"
+  },
+  {
+    "name": "search_contacts_by_email",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Finds contacts in the inbox's contact list by email.\nIt returns a list of contacts that match the given email.\n\n:param query: The email of the contacts to search for.",
+    "description": "Finds contacts in the inbox's contact list by email.\nIt returns a list of contacts that match the given email.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The email of the contacts to search for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "list[EmailContact]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_contacts_by_email(inbox: Annotated[Inbox, Depends(\"inbox\")], query: str) -> list[EmailContact]:\n    \"\"\"Finds contacts in the inbox's contact list by email.\n    It returns a list of contacts that match the given email.\n\n    :param query: The email of the contacts to search for.\n    \"\"\"\n    return inbox.find_contacts_by_email(query)"
+  },
+  {
+    "name": "get_current_day",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Returns the current day in ISO format, e.g. '2022-01-01'.\nIt is useful to know what the current day, year, or month is, as the assistant\nshould not assume what the current date is.",
+    "description": "Returns the current day in ISO format, e.g. '2022-01-01'.\nIt is useful to know what the current day, year, or month is, as the assistant\nshould not assume what the current date is.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_current_day(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n) -> str:\n    \"\"\"Returns the current day in ISO format, e.g. '2022-01-01'.\n    It is useful to know what the current day, year, or month is, as the assistant\n    should not assume what the current date is.\"\"\"\n    return calendar.current_day.isoformat()"
+  },
+  {
+    "name": "search_calendar_events",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.\n\n:param query: The query string to search for in event titles and descriptions.\n:param date: The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events.",
+    "description": "Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The query string to search for in event titles and descriptions."
+      },
+      {
+        "name": "date",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "list[CalendarEvent]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_calendar_events(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    query: str,\n    date: str | None = None,\n) -> list[CalendarEvent]:\n    \"\"\"Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.\n\n    :param query: The query string to search for in event titles and descriptions.\n    :param date: The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events.\n    \"\"\"\n    if date is not None:\n        date_ = datetime.datetime.strptime(date, \"%Y-%m-%d\").date()\n    else:\n        date_ = None\n    matches = calendar.search_events(query, date_)\n    if len(matches) == 0:\n        raise ValueError(\"No events found. Try with a different query.\")\n    return matches"
+  },
+  {
+    "name": "get_day_calendar_events",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.\n\n:param day: The day for which to return the appointments. Must be in format YYYY-MM-DD.",
+    "description": "Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.",
+    "params": [
+      {
+        "name": "day",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The day for which to return the appointments. Must be in format YYYY-MM-DD."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "list[CalendarEvent]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_day_calendar_events(calendar: Annotated[Calendar, Depends(\"calendar\")], day: str) -> list[CalendarEvent]:\n    \"\"\"Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.\n\n    :param day: The day for which to return the appointments. Must be in format YYYY-MM-DD.\n    \"\"\"\n    date = datetime.datetime.strptime(day, \"%Y-%m-%d\")\n    return calendar.get_by_day(date.date())"
+  },
+  {
+    "name": "create_calendar_event",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Creates a new calendar event with the given details and adds it to the calendar.\nIt also sends an email to the participants with the event details.\n\n:param title: The title of the event.\n:param start_time: The start time of the event. Must be in format YYYY-MM-DD HH:MM.\n:param end_time: The end time of the event. Must be in format YYYY-MM-DD HH:MM.\n:param description: The description of the event.\n:param participants: The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included..\n:param location: The location of the event. If `null`, no location is set.",
+    "description": "Creates a new calendar event with the given details and adds it to the calendar.\nIt also sends an email to the participants with the event details.",
+    "params": [
+      {
+        "name": "title",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The title of the event."
+      },
+      {
+        "name": "start_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The start time of the event. Must be in format YYYY-MM-DD HH:MM."
+      },
+      {
+        "name": "end_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The end time of the event. Must be in format YYYY-MM-DD HH:MM."
+      },
+      {
+        "name": "description",
+        "annotation": "str",
+        "required": false,
+        "default": "",
+        "description": "The description of the event."
+      },
+      {
+        "name": "participants",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included.."
+      },
+      {
+        "name": "location",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The location of the event. If `null`, no location is set."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      },
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "CalendarEvent",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "create",
+      "body_mutations": [
+        "via Calendar.create_event: self.events[id_] = event",
+        "via Calendar.create_event: participants.append(self.account_email)",
+        "via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Creates",
+        "adds",
+        "sends"
+      ]
+    },
+    "body_source": "def create_calendar_event(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    title: str,\n    start_time: str,\n    end_time: str,\n    description: str = \"\",\n    participants: list[str] | None = None,\n    location: str | None = None,\n) -> CalendarEvent:\n    \"\"\"Creates a new calendar event with the given details and adds it to the calendar.\n    It also sends an email to the participants with the event details.\n\n    :param title: The title of the event.\n    :param start_time: The start time of the event. Must be in format YYYY-MM-DD HH:MM.\n    :param end_time: The end time of the event. Must be in format YYYY-MM-DD HH:MM.\n    :param description: The description of the event.\n    :param participants: The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included..\n    :param location: The location of the event. If `null`, no location is set.\n    \"\"\"\n    parsed_start_time = datetime.datetime.strptime(start_time, \"%Y-%m-%d %H:%M\")\n    parsed_end_time = datetime.datetime.strptime(end_time, \"%Y-%m-%d %H:%M\")\n    if participants is None:\n        participants = []\n    new_event = calendar.create_event(title, description, parsed_start_time, parsed_end_time, location, participants)\n    inbox.send_email(\n        recipients=participants,\n        subject=f\"Invitation: {title}\",\n        body=description,\n        attachments=[new_event],\n    )\n    return new_event"
+  },
+  {
+    "name": "cancel_calendar_event",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\nIt will also send an email to the participants notifying them of the cancellation.\n\n:param event_id: The ID of the event to cancel.",
+    "description": "Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\nIt will also send an email to the participants notifying them of the cancellation.",
+    "params": [
+      {
+        "name": "event_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the event to cancel."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      },
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "str",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "cancel",
+      "body_mutations": [
+        "via Calendar.cancel_event: self.events[event_id].status = EvenStatus.canceled",
+        "via Calendar.cancel_event: via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Cancels",
+        "marked as",
+        "send"
+      ]
+    },
+    "body_source": "def cancel_calendar_event(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    event_id: str,\n) -> str:\n    \"\"\"Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\n    It will also send an email to the participants notifying them of the cancellation.\n\n    :param event_id: The ID of the event to cancel.\n    \"\"\"\n    calendar.cancel_event(inbox, CalendarEventID(event_id))\n    return f\"Event with ID {event_id} has been canceled and participants have been notified.\""
+  },
+  {
+    "name": "reschedule_calendar_event",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Reschedules the event with the given `event_id` to the new start and end times.\nIt will also send an email to the participants notifying them of the rescheduling.\n\n:param event_id: The ID of the event to reschedule.\n:param new_start_time: The new start time of the event. Must be in format YYYY-MM-DD HH:MM.\n:param new_end_time: The new end time of the event. Must be in format YYYY-MM-DD HH:MM.\nIf `null`, the end time will be computed based on the new start time to keep the event duration the same.",
+    "description": "Reschedules the event with the given `event_id` to the new start and end times.\nIt will also send an email to the participants notifying them of the rescheduling.",
+    "params": [
+      {
+        "name": "event_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the event to reschedule."
+      },
+      {
+        "name": "new_start_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The new start time of the event. Must be in format YYYY-MM-DD HH:MM."
+      },
+      {
+        "name": "new_end_time",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The new end time of the event. Must be in format YYYY-MM-DD HH:MM. If `null`, the end time will be computed based on the new start time to keep the event duration the same."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      },
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "CalendarEvent",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "reschedule",
+      "body_mutations": [
+        "via Calendar.reschedule_event: event.start_time = new_start_time",
+        "via Calendar.reschedule_event: event.end_time = new_end_time",
+        "via Calendar.reschedule_event: event.end_time = new_start_time + (event.end_time - old_start_time)",
+        "via Calendar.reschedule_event: via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Reschedules",
+        "send"
+      ]
+    },
+    "body_source": "def reschedule_calendar_event(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    event_id: str,\n    new_start_time: str,\n    new_end_time: str | None = None,\n) -> CalendarEvent:\n    \"\"\"Reschedules the event with the given `event_id` to the new start and end times.\n    It will also send an email to the participants notifying them of the rescheduling.\n\n    :param event_id: The ID of the event to reschedule.\n    :param new_start_time: The new start time of the event. Must be in format YYYY-MM-DD HH:MM.\n    :param new_end_time: The new end time of the event. Must be in format YYYY-MM-DD HH:MM.\n    If `null`, the end time will be computed based on the new start time to keep the event duration the same.\n    \"\"\"\n    if new_end_time is not None:\n        parsed_new_end_time = datetime.datetime.strptime(new_end_time, \"%Y-%m-%d %H:%M\")\n    else:\n        parsed_new_end_time = None\n    calendar_event = calendar.reschedule_event(\n        inbox,\n        CalendarEventID(event_id),\n        datetime.datetime.strptime(new_start_time, \"%Y-%m-%d %H:%M\"),\n        parsed_new_end_time,\n    )\n    return calendar_event"
+  },
+  {
+    "name": "add_calendar_event_participants",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Adds the given `participants` to the event with the given `event_id`.\nIt will also email the new participants notifying them of the event.\n\n:param event_id: The ID of the event to add participants to.\n:param participants: The list of participants' email addresses to add to the event.",
+    "description": "Adds the given `participants` to the event with the given `event_id`.\nIt will also email the new participants notifying them of the event.",
+    "params": [
+      {
+        "name": "event_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the event to add participants to."
+      },
+      {
+        "name": "participants",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The list of participants' email addresses to add to the event."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "CalendarEvent",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "add",
+      "body_mutations": [
+        "via Calendar.add_participants: event.participants.extend(participants)"
+      ],
+      "docstring_phrases": [
+        "Adds"
+      ]
+    },
+    "body_source": "def add_calendar_event_participants(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    event_id: str,\n    participants: list[str],\n) -> CalendarEvent:\n    \"\"\"Adds the given `participants` to the event with the given `event_id`.\n    It will also email the new participants notifying them of the event.\n\n    :param event_id: The ID of the event to add participants to.\n    :param participants: The list of participants' email addresses to add to the event.\n    \"\"\"\n    calendar_event = calendar.add_participants(CalendarEventID(event_id), participants)\n    return calendar_event"
+  },
+  {
+    "name": "append_to_file",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Append content to a file in the cloud drive.\n\n:param file_id: The ID of the file to append content to.\n:param content: The content to append to the file.",
+    "description": "Append content to a file in the cloud drive.",
+    "params": [
+      {
+        "name": "file_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the file to append content to."
+      },
+      {
+        "name": "content",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The content to append to the file."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "CloudDriveFile",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "append",
+      "body_mutations": [
+        "via CloudDrive.append_to_file: file.content += content",
+        "via CloudDrive.append_to_file: file.size = len(file.content)",
+        "via CloudDrive.append_to_file: file.last_modified = datetime.datetime.now()"
+      ],
+      "docstring_phrases": [
+        "Append"
+      ]
+    },
+    "body_source": "def append_to_file(\n    cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")],\n    file_id: str,\n    content: str,\n) -> CloudDriveFile:\n    \"\"\"Append content to a file in the cloud drive.\n\n    :param file_id: The ID of the file to append content to.\n    :param content: The content to append to the file.\n    \"\"\"\n    return cloud_drive.append_to_file(CloudDriveFileID(file_id), content)"
+  },
+  {
+    "name": "search_files_by_filename",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Get a file from a cloud drive by its filename. It returns a list of files.\nEach file contains the file id, the content, the file type, and the filename.\n\n:param filename: The name of the file to retrieve.",
+    "description": "Get a file from a cloud drive by its filename. It returns a list of files.\nEach file contains the file id, the content, the file type, and the filename.",
+    "params": [
+      {
+        "name": "filename",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The name of the file to retrieve."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "list[CloudDriveFile]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_files_by_filename(\n    cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")], filename: str\n) -> list[CloudDriveFile]:\n    \"\"\"Get a file from a cloud drive by its filename. It returns a list of files.\n    Each file contains the file id, the content, the file type, and the filename.\n\n    :param filename: The name of the file to retrieve.\n    \"\"\"\n    return cloud_drive.search_files_by_filename(filename)"
+  },
+  {
+    "name": "create_file",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Create a new file in the cloud drive.\n\n:param filename: The name of the file to create.\n:param content: The content of the file to create.",
+    "description": "Create a new file in the cloud drive.",
+    "params": [
+      {
+        "name": "filename",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The name of the file to create."
+      },
+      {
+        "name": "content",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The content of the file to create."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "CloudDriveFile",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "create",
+      "body_mutations": [
+        "via CloudDrive.create_file: self.files[new_file.id_] = new_file"
+      ],
+      "docstring_phrases": [
+        "Create"
+      ]
+    },
+    "body_source": "def create_file(\n    cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")],\n    filename: str,\n    content: str,\n) -> CloudDriveFile:\n    \"\"\"Create a new file in the cloud drive.\n\n    :param filename: The name of the file to create.\n    :param content: The content of the file to create.\n    \"\"\"\n    return cloud_drive.create_file(filename, content)"
+  },
+  {
+    "name": "delete_file",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Delete a file from the cloud drive by its filename.\nIt returns the file that was deleted.\n\n:param file_id: The name of the file to delete.",
+    "description": "Delete a file from the cloud drive by its filename.\nIt returns the file that was deleted.",
+    "params": [
+      {
+        "name": "file_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The name of the file to delete."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "CloudDriveFile",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "delete",
+      "body_mutations": [
+        "via CloudDrive.delete_file: self.files.pop(file_id)"
+      ],
+      "docstring_phrases": [
+        "Delete"
+      ]
+    },
+    "body_source": "def delete_file(cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")], file_id: str) -> CloudDriveFile:\n    \"\"\"Delete a file from the cloud drive by its filename.\n    It returns the file that was deleted.\n\n    :param file_id: The name of the file to delete.\n    \"\"\"\n    return cloud_drive.delete_file(CloudDriveFileID(file_id))"
+  },
+  {
+    "name": "get_file_by_id",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Get a file from a cloud drive by its ID.\n\n:param file_id: The ID of the file to retrieve.",
+    "description": "Get a file from a cloud drive by its ID.",
+    "params": [
+      {
+        "name": "file_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the file to retrieve."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "CloudDriveFile",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_file_by_id(cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")], file_id: str) -> CloudDriveFile:\n    \"\"\"Get a file from a cloud drive by its ID.\n\n    :param file_id: The ID of the file to retrieve.\n    \"\"\"\n    return cloud_drive.get_file_by_id(file_id)"
+  },
+  {
+    "name": "list_files",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Retrieve all files in the cloud drive.",
+    "description": "Retrieve all files in the cloud drive.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "list[CloudDriveFile]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "list",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def list_files(\n    cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")],\n) -> list[CloudDriveFile]:\n    \"\"\"Retrieve all files in the cloud drive.\"\"\"\n    return list(cloud_drive.files.values())"
+  },
+  {
+    "name": "share_file",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Share a file with a user.\n\n:param file_id: The ID of the file to share.\n:param email: The email of the user to share the file with.\n:param permission: The permission level to grant the user.",
+    "description": "Share a file with a user.",
+    "params": [
+      {
+        "name": "file_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the file to share."
+      },
+      {
+        "name": "email",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The email of the user to share the file with."
+      },
+      {
+        "name": "permission",
+        "annotation": "SharingPermission",
+        "required": true,
+        "default": null,
+        "description": "The permission level to grant the user."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "CloudDriveFile",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "share",
+      "body_mutations": [
+        "file.shared_with[email] = permission"
+      ],
+      "docstring_phrases": [
+        "Share"
+      ]
+    },
+    "body_source": "def share_file(\n    cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")],\n    file_id: str,\n    email: str,\n    permission: SharingPermission,\n) -> CloudDriveFile:\n    \"\"\"Share a file with a user.\n\n    :param file_id: The ID of the file to share.\n    :param email: The email of the user to share the file with.\n    :param permission: The permission level to grant the user.\n    \"\"\"\n    file = cloud_drive.get_file_by_id(CloudDriveFileID(file_id))\n    file.shared_with[email] = permission\n    return file"
+  },
+  {
+    "name": "search_files",
+    "module": "agentdojo/default_suites/v1/tools/cloud_drive_client.py",
+    "docstring": "Search for files in the cloud drive by content.\n\n:param query: The string to search for in the files.",
+    "description": "Search for files in the cloud drive by content.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The string to search for in the files."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "cloud_drive",
+        "annotation": "Annotated[CloudDrive, Depends('cloud_drive')]",
+        "depends_on": "cloud_drive"
+      }
+    ],
+    "returns": "list[CloudDriveFile]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_files(cloud_drive: Annotated[CloudDrive, Depends(\"cloud_drive\")], query: str) -> list[CloudDriveFile]:\n    \"\"\"Search for files in the cloud drive by content.\n\n    :param query: The string to search for in the files.\n    \"\"\"\n    matches = cloud_drive.search_files(query)\n    if len(matches) == 0:\n        raise ValueError(f\"No files found with the given query ('{query}'). Try a different search term.\")\n    return matches"
+  }
+]

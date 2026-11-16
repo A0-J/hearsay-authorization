@@ -1,0 +1,443 @@
+[
+  {
+    "name": "get_iban",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Get the IBAN of the current bank account.",
+    "description": "Get the IBAN of the current bank account.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_iban(account: Annotated[BankAccount, Depends(\"bank_account\")]) -> str:\n    \"\"\"Get the IBAN of the current bank account.\"\"\"\n    return account.iban"
+  },
+  {
+    "name": "send_money",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Sends a transaction to the recipient.\n\n:param recipient: IBAN of the recipient\n:param amount: Amount of the transaction\n:param subject: Subject of the transaction\n:param date: Date of the transaction",
+    "description": "Sends a transaction to the recipient.",
+    "params": [
+      {
+        "name": "recipient",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "IBAN of the recipient"
+      },
+      {
+        "name": "amount",
+        "annotation": "float",
+        "required": true,
+        "default": null,
+        "description": "Amount of the transaction"
+      },
+      {
+        "name": "subject",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Subject of the transaction"
+      },
+      {
+        "name": "date",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Date of the transaction"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "send",
+      "body_mutations": [
+        "account.transactions.append(transaction)"
+      ],
+      "docstring_phrases": [
+        "Sends"
+      ]
+    },
+    "body_source": "def send_money(\n    account: Annotated[BankAccount, Depends(\"bank_account\")], recipient: str, amount: float, subject: str, date: str\n) -> dict[str, str]:\n    \"\"\"\n    Sends a transaction to the recipient.\n\n    :param recipient: IBAN of the recipient\n    :param amount: Amount of the transaction\n    :param subject: Subject of the transaction\n    :param date: Date of the transaction\n    \"\"\"\n    transaction = Transaction(\n        id=next_id(account),\n        sender=get_iban(account),\n        recipient=recipient,\n        amount=amount,\n        subject=subject,\n        date=date,\n        recurring=False,\n    )\n    account.transactions.append(transaction)\n\n    return {\n        \"message\": f\"Transaction to {recipient} for {amount} sent.\",\n    }"
+  },
+  {
+    "name": "schedule_transaction",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Schedule a transaction.\n\n:param recipient: IBAN of the recipient\n:param amount: Amount of the transaction\n:param subject: Subject of the transaction\n:param date: Next date of the transaction\n:param recurring: Is the transaction recurring",
+    "description": "Schedule a transaction.",
+    "params": [
+      {
+        "name": "recipient",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "IBAN of the recipient"
+      },
+      {
+        "name": "amount",
+        "annotation": "float",
+        "required": true,
+        "default": null,
+        "description": "Amount of the transaction"
+      },
+      {
+        "name": "subject",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Subject of the transaction"
+      },
+      {
+        "name": "date",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Next date of the transaction"
+      },
+      {
+        "name": "recurring",
+        "annotation": "bool",
+        "required": true,
+        "default": null,
+        "description": "Is the transaction recurring"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "schedule",
+      "body_mutations": [
+        "account.scheduled_transactions.append(transaction)"
+      ],
+      "docstring_phrases": [
+        "Schedule"
+      ]
+    },
+    "body_source": "def schedule_transaction(\n    account: Annotated[BankAccount, Depends(\"bank_account\")],\n    recipient: str,\n    amount: float,\n    subject: str,\n    date: str,\n    recurring: bool,\n) -> dict[str, str]:\n    \"\"\"\n    Schedule a transaction.\n\n    :param recipient: IBAN of the recipient\n    :param amount: Amount of the transaction\n    :param subject: Subject of the transaction\n    :param date: Next date of the transaction\n    :param recurring: Is the transaction recurring\n    \"\"\"\n    transaction = Transaction(\n        id=next_id(account),\n        sender=get_iban(account),\n        recipient=recipient,\n        amount=amount,\n        subject=subject,\n        date=date,\n        recurring=recurring,\n    )\n    account.scheduled_transactions.append(transaction)\n\n    return {\n        \"message\": f\"Transaction to {recipient} for {amount} scheduled.\",\n    }"
+  },
+  {
+    "name": "update_scheduled_transaction",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Update a scheduled transaction.\n\n:param id: ID of the transaction (mandatory)\n:param recipient: IBAN of the recipient (optional)\n:param amount: Amount of the transaction (optional)\n:param subject: Subject of the transaction (optional)\n:param date: Next date of the transaction (optional)\n:param recurring: Is the transaction recurring (optional)",
+    "description": "Update a scheduled transaction.",
+    "params": [
+      {
+        "name": "id",
+        "annotation": "int",
+        "required": true,
+        "default": null,
+        "description": "ID of the transaction (mandatory)"
+      },
+      {
+        "name": "recipient",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "IBAN of the recipient (optional)"
+      },
+      {
+        "name": "amount",
+        "annotation": "float | None",
+        "required": false,
+        "default": null,
+        "description": "Amount of the transaction (optional)"
+      },
+      {
+        "name": "subject",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "Subject of the transaction (optional)"
+      },
+      {
+        "name": "date",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "Next date of the transaction (optional)"
+      },
+      {
+        "name": "recurring",
+        "annotation": "bool | None",
+        "required": false,
+        "default": null,
+        "description": "Is the transaction recurring (optional)"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "update",
+      "body_mutations": [
+        "transaction.recipient = recipient",
+        "transaction.amount = amount",
+        "transaction.subject = subject",
+        "transaction.date = date",
+        "transaction.recurring = recurring"
+      ],
+      "docstring_phrases": [
+        "Update"
+      ]
+    },
+    "body_source": "def update_scheduled_transaction(\n    account: Annotated[BankAccount, Depends(\"bank_account\")],\n    id: int,\n    recipient: str | None = None,\n    amount: float | None = None,\n    subject: str | None = None,\n    date: str | None = None,\n    recurring: bool | None = None,\n) -> dict[str, str]:\n    \"\"\"\n    Update a scheduled transaction.\n\n    :param id: ID of the transaction (mandatory)\n    :param recipient: IBAN of the recipient (optional)\n    :param amount: Amount of the transaction (optional)\n    :param subject: Subject of the transaction (optional)\n    :param date: Next date of the transaction (optional)\n    :param recurring: Is the transaction recurring (optional)\n    \"\"\"\n    transaction = next((t for t in account.scheduled_transactions if t.id == id), None)\n    if transaction:\n        if recipient:\n            transaction.recipient = recipient\n        if amount:\n            transaction.amount = amount\n        if subject:\n            transaction.subject = subject\n        if date:\n            transaction.date = date\n        if recurring:\n            transaction.recurring = recurring\n    else:\n        raise ValueError(f\"Transaction with ID {id} not found.\")\n\n    return {\n        \"message\": f\"Transaction with ID {id} updated.\",\n    }"
+  },
+  {
+    "name": "get_balance",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Get the balance of the account.",
+    "description": "Get the balance of the account.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "float",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_balance(account: Annotated[BankAccount, Depends(\"bank_account\")]) -> float:\n    \"\"\"\n    Get the balance of the account.\n    \"\"\"\n    return account.balance"
+  },
+  {
+    "name": "get_most_recent_transactions",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Get the list of the most recent transactions, e.g. to summarize the last n transactions.\n\n:param n: Number of transactions to return",
+    "description": "Get the list of the most recent transactions, e.g. to summarize the last n transactions.",
+    "params": [
+      {
+        "name": "n",
+        "annotation": "int",
+        "required": false,
+        "default": 100,
+        "description": "Number of transactions to return"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "list[Transaction]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_most_recent_transactions(\n    account: Annotated[BankAccount, Depends(\"bank_account\")], n: int = 100\n) -> list[Transaction]:\n    \"\"\"\n    Get the list of the most recent transactions, e.g. to summarize the last n transactions.\n\n    :param n: Number of transactions to return\n    \"\"\"\n    return [t for t in account.transactions[-int(n) :]]"
+  },
+  {
+    "name": "get_scheduled_transactions",
+    "module": "agentdojo/default_suites/v1/tools/banking_client.py",
+    "docstring": "Get the list of scheduled transactions.",
+    "description": "Get the list of scheduled transactions.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[BankAccount, Depends('bank_account')]",
+        "depends_on": "bank_account"
+      }
+    ],
+    "returns": "list[Transaction]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_scheduled_transactions(\n    account: Annotated[BankAccount, Depends(\"bank_account\")],\n) -> list[Transaction]:\n    \"\"\"\n    Get the list of scheduled transactions.\n    \"\"\"\n    return [t for t in account.scheduled_transactions]"
+  },
+  {
+    "name": "read_file",
+    "module": "agentdojo/default_suites/v1/tools/file_reader.py",
+    "docstring": "Reads the contents of the file at the given path.\n\n:param file_path: The path to the file to read.",
+    "description": "Reads the contents of the file at the given path.",
+    "params": [
+      {
+        "name": "file_path",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The path to the file to read."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "filesystem",
+        "annotation": "Annotated[Filesystem, Depends('filesystem')]",
+        "depends_on": "filesystem"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "read",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def read_file(filesystem: Annotated[Filesystem, Depends(\"filesystem\")], file_path: str) -> str:\n    \"\"\"\n    Reads the contents of the file at the given path.\n\n    :param file_path: The path to the file to read.\n    \"\"\"\n    return filesystem.files.get(file_path, \"\")"
+  },
+  {
+    "name": "get_user_info",
+    "module": "agentdojo/default_suites/v1/tools/user_account.py",
+    "docstring": "Get the user information.",
+    "description": "Get the user information.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[UserAccount, Depends('user_account')]",
+        "depends_on": "user_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_user_info(\n    account: Annotated[UserAccount, Depends(\"user_account\")],\n) -> dict[str, str]:\n    \"\"\"\n    Get the user information.\n    \"\"\"\n    return {\n        \"first_name\": account.first_name,\n        \"last_name\": account.last_name,\n        \"street\": account.street,\n        \"city\": account.city,\n    }"
+  },
+  {
+    "name": "update_password",
+    "module": "agentdojo/default_suites/v1/tools/user_account.py",
+    "docstring": "Update the user password.\n\n:param password: New password for the user",
+    "description": "Update the user password.",
+    "params": [
+      {
+        "name": "password",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "New password for the user"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[UserAccount, Depends('user_account')]",
+        "depends_on": "user_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "update",
+      "body_mutations": [
+        "account.password = password"
+      ],
+      "docstring_phrases": [
+        "Update"
+      ]
+    },
+    "body_source": "def update_password(account: Annotated[UserAccount, Depends(\"user_account\")], password: str) -> dict[str, str]:\n    \"\"\"\n    Update the user password.\n\n    :param password: New password for the user\n    \"\"\"\n    account.password = password\n    return {\n        \"message\": \"Password updated.\",\n    }"
+  },
+  {
+    "name": "update_user_info",
+    "module": "agentdojo/default_suites/v1/tools/user_account.py",
+    "docstring": "Update the user information.\n\n:param first_name: First name of the user (optional)\n:param last_name: Last name of the user (optional)\n:param street: Street of the user (optional)\n:param city: City of the user (optional)",
+    "description": "Update the user information.",
+    "params": [
+      {
+        "name": "first_name",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "First name of the user (optional)"
+      },
+      {
+        "name": "last_name",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "Last name of the user (optional)"
+      },
+      {
+        "name": "street",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "Street of the user (optional)"
+      },
+      {
+        "name": "city",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "City of the user (optional)"
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "account",
+        "annotation": "Annotated[UserAccount, Depends('user_account')]",
+        "depends_on": "user_account"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "update",
+      "body_mutations": [
+        "account.first_name = first_name",
+        "account.last_name = last_name",
+        "account.street = street",
+        "account.city = city"
+      ],
+      "docstring_phrases": [
+        "Update"
+      ]
+    },
+    "body_source": "def update_user_info(\n    account: Annotated[UserAccount, Depends(\"user_account\")],\n    first_name: str | None = None,\n    last_name: str | None = None,\n    street: str | None = None,\n    city: str | None = None,\n) -> dict[str, str]:\n    \"\"\"\n    Update the user information.\n\n    :param first_name: First name of the user (optional)\n    :param last_name: Last name of the user (optional)\n    :param street: Street of the user (optional)\n    :param city: City of the user (optional)\n    \"\"\"\n    if first_name:\n        account.first_name = first_name\n    if last_name:\n        account.last_name = last_name\n    if street:\n        account.street = street\n    if city:\n        account.city = city\n\n    return {\n        \"first_name\": account.first_name,\n        \"last_name\": account.last_name,\n        \"street\": account.street,\n        \"city\": account.city,\n    }"
+  }
+]

@@ -1,0 +1,404 @@
+[
+  {
+    "name": "get_channels",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Get the list of channels in the slack.",
+    "description": "Get the list of channels in the slack.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "list[str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_channels(slack: AnnotatedSlack) -> list[str]:\n    \"\"\"Get the list of channels in the slack.\"\"\"\n    return slack.channels"
+  },
+  {
+    "name": "add_user_to_channel",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Add a user to a given channel.\n\n:param user: The user to add to the channel.\n:param channel: The channel to add the user to.",
+    "description": "Add a user to a given channel.",
+    "params": [
+      {
+        "name": "user",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The user to add to the channel."
+      },
+      {
+        "name": "channel",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The channel to add the user to."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "add",
+      "body_mutations": [
+        "slack.user_channels[user].append(channel)"
+      ],
+      "docstring_phrases": [
+        "Add"
+      ]
+    },
+    "body_source": "def add_user_to_channel(slack: AnnotatedSlack, user: str, channel: str) -> None:\n    \"\"\"Add a user to a given channel.\n\n    :param user: The user to add to the channel.\n    :param channel: The channel to add the user to.\n    \"\"\"\n    if user not in slack.users:\n        raise ValueError(f\"User {user} not found in the users list\")\n    if channel not in slack.channels:\n        raise ValueError(f\"Channel {channel} not found in the channels list\")\n    slack.user_channels[user].append(channel)"
+  },
+  {
+    "name": "read_channel_messages",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Read the messages from the given channel.\n\n:param channel: The channel to read the messages from.",
+    "description": "Read the messages from the given channel.",
+    "params": [
+      {
+        "name": "channel",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The channel to read the messages from."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "list[Message]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "read",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def read_channel_messages(slack: AnnotatedSlack, channel: str) -> list[Message]:\n    \"\"\"Read the messages from the given channel.\n\n    :param channel: The channel to read the messages from.\n    \"\"\"\n    if channel not in slack.channels:\n        raise ValueError(\"Channel does not exist!\")\n    return slack.channel_inbox.get(channel, [])"
+  },
+  {
+    "name": "read_inbox",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Read the messages from the given user inbox.\n\n:param user: The user whose inbox to read.",
+    "description": "Read the messages from the given user inbox.",
+    "params": [
+      {
+        "name": "user",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The user whose inbox to read."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "list[Message]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "read",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def read_inbox(slack: AnnotatedSlack, user: str) -> list[Message]:\n    \"\"\"Read the messages from the given user inbox.\n\n    :param user: The user whose inbox to read.\n    \"\"\"\n    if user not in slack.users:\n        raise ValueError(f\"User {user} not found in the users list\")\n    return slack.user_inbox.get(user, [])"
+  },
+  {
+    "name": "send_direct_message",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Send a direct message from `author` to `recipient` with the given `content`.\n\n:param recipient: The recipient of the message.\n:param body: The body of the message.",
+    "description": "Send a direct message from `author` to `recipient` with the given `content`.",
+    "params": [
+      {
+        "name": "recipient",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The recipient of the message."
+      },
+      {
+        "name": "body",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The body of the message."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "send",
+      "body_mutations": [
+        "slack.user_inbox[recipient] = []",
+        "slack.user_inbox[recipient].append(msg)"
+      ],
+      "docstring_phrases": [
+        "Send"
+      ]
+    },
+    "body_source": "def send_direct_message(slack: AnnotatedSlack, recipient: str, body: str) -> None:\n    \"\"\"Send a direct message from `author` to `recipient` with the given `content`.\n\n    :param recipient: The recipient of the message.\n    :param body: The body of the message.\n    \"\"\"\n    sender = \"bot\"\n    if recipient not in slack.users:\n        raise ValueError(f\"Recipient {recipient} not found in the users list\")\n    msg = Message(sender=sender, recipient=recipient, body=body)\n    if recipient not in slack.user_inbox:\n        slack.user_inbox[recipient] = []\n    slack.user_inbox[recipient].append(msg)"
+  },
+  {
+    "name": "send_channel_message",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Send a channel message from `author` to `channel` with the given `content`.\n\n:param channel: The channel to send the message to.\n:param body: The body of the message.",
+    "description": "Send a channel message from `author` to `channel` with the given `content`.",
+    "params": [
+      {
+        "name": "channel",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The channel to send the message to."
+      },
+      {
+        "name": "body",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The body of the message."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "send",
+      "body_mutations": [
+        "slack.channel_inbox[channel] = []",
+        "slack.channel_inbox[channel].append(msg)"
+      ],
+      "docstring_phrases": [
+        "Send"
+      ]
+    },
+    "body_source": "def send_channel_message(slack: AnnotatedSlack, channel: str, body: str) -> None:\n    \"\"\"Send a channel message from `author` to `channel` with the given `content`.\n\n    :param channel: The channel to send the message to.\n    :param body: The body of the message.\n    \"\"\"\n    sender = \"bot\"\n    if channel not in slack.channels:\n        raise ValueError(f\"Channel {channel} not found in the channels list\")\n    msg = Message(sender=sender, recipient=channel, body=body)\n    if channel not in slack.channel_inbox:\n        slack.channel_inbox[channel] = []\n    slack.channel_inbox[channel].append(msg)"
+  },
+  {
+    "name": "get_users_in_channel",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Get the list of users in the given channel.\n\n:param channel: The channel to get the users from.",
+    "description": "Get the list of users in the given channel.",
+    "params": [
+      {
+        "name": "channel",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The channel to get the users from."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "list[str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_users_in_channel(slack: AnnotatedSlack, channel: str) -> list[str]:\n    \"\"\"Get the list of users in the given channel.\n\n    :param channel: The channel to get the users from.\n    \"\"\"\n    if channel not in slack.channels:\n        raise ValueError(f\"Channel {channel} not found in the channels list\")\n    users = []\n    for user, channels in slack.user_channels.items():\n        if channel in channels:\n            users.append(user)\n    return users"
+  },
+  {
+    "name": "invite_user_to_slack",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Invites a user to the Slack workspace.\n\n:param user: The user to invite.\n:param user_email: The user email where invite should be sent.",
+    "description": "Invites a user to the Slack workspace.",
+    "params": [
+      {
+        "name": "user",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The user to invite."
+      },
+      {
+        "name": "user_email",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The user email where invite should be sent."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "invite",
+      "body_mutations": [
+        "slack.user_inbox[user] = []",
+        "slack.user_channels[user] = []",
+        "slack.users.append(user)"
+      ],
+      "docstring_phrases": [
+        "Invites"
+      ]
+    },
+    "body_source": "def invite_user_to_slack(slack: AnnotatedSlack, user: str, user_email: str) -> None:\n    \"\"\"Invites a user to the Slack workspace.\n\n    :param user: The user to invite.\n    :param user_email: The user email where invite should be sent.\n    \"\"\"\n    if user in slack.users:\n        raise ValueError(f\"User {user} already in the users list\")\n    slack.users.append(user)\n    slack.user_inbox[user] = []\n    slack.user_channels[user] = []"
+  },
+  {
+    "name": "remove_user_from_slack",
+    "module": "agentdojo/default_suites/v1/tools/slack.py",
+    "docstring": "Remove a user from the Slack workspace.\n\n:param user: The user to remove.",
+    "description": "Remove a user from the Slack workspace.",
+    "params": [
+      {
+        "name": "user",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The user to remove."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "slack",
+        "annotation": "AnnotatedSlack",
+        "depends_on": "slack"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "remove",
+      "body_mutations": [
+        "del slack.user_inbox[user]",
+        "del slack.user_channels[user]",
+        "slack.users.remove(user)"
+      ],
+      "docstring_phrases": [
+        "Remove"
+      ]
+    },
+    "body_source": "def remove_user_from_slack(slack: AnnotatedSlack, user: str) -> None:\n    \"\"\"Remove a user from the Slack workspace.\n\n    :param user: The user to remove.\n    \"\"\"\n    if user not in slack.users:\n        raise ValueError(f\"User {user} not found in the users list\")\n    slack.users.remove(user)\n    del slack.user_inbox[user]\n    del slack.user_channels[user]"
+  },
+  {
+    "name": "get_webpage",
+    "module": "agentdojo/default_suites/v1/tools/web.py",
+    "docstring": "Returns the content of the webpage at a given URL.\n\n:param url: The URL of the webpage.",
+    "description": "Returns the content of the webpage at a given URL.",
+    "params": [
+      {
+        "name": "url",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The URL of the webpage."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "web",
+        "annotation": "AnnotatedWeb",
+        "depends_on": "web"
+      }
+    ],
+    "returns": "str | None",
+    "classification": "read",
+    "classification_certain": false,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [
+        "web.web_requests.append(url)"
+      ],
+      "docstring_phrases": [],
+      "uncertain_reason": "name verb 'get' suggests read; body mutates state: web.web_requests.append(url)"
+    },
+    "body_source": "def get_webpage(web: AnnotatedWeb, url: str) -> str | None:\n    \"\"\"Returns the content of the webpage at a given URL.\n\n    :param url: The URL of the webpage.\n    \"\"\"\n    url = standardize_url(url)\n    web.web_requests.append(url)\n    if url not in web.web_content:\n        return \"404 Not Found\"\n    return web.web_content.get(url)"
+  },
+  {
+    "name": "post_webpage",
+    "module": "agentdojo/default_suites/v1/tools/web.py",
+    "docstring": "Posts a webpage at a given URL with the given content.\n\n:param url: The URL of the webpage.\n:param content: The content of the webpage.",
+    "description": "Posts a webpage at a given URL with the given content.",
+    "params": [
+      {
+        "name": "url",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The URL of the webpage."
+      },
+      {
+        "name": "content",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The content of the webpage."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "web",
+        "annotation": "AnnotatedWeb",
+        "depends_on": "web"
+      }
+    ],
+    "returns": "None",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "post",
+      "body_mutations": [
+        "web.web_content[url] = content",
+        "web.web_requests.append(url)"
+      ],
+      "docstring_phrases": [
+        "Posts"
+      ]
+    },
+    "body_source": "def post_webpage(web: AnnotatedWeb, url: str, content: str) -> None:\n    \"\"\"Posts a webpage at a given URL with the given content.\n\n    :param url: The URL of the webpage.\n    :param content: The content of the webpage.\n    \"\"\"\n    url = standardize_url(url)\n    web.web_requests.append(url)\n    web.web_content[url] = content"
+  }
+]

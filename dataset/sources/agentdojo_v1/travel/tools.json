@@ -1,0 +1,1049 @@
+[
+  {
+    "name": "get_user_information",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the user information, could be: first name, last name, ID number, email, phone number, address, passport number, bank account number, credit card number. These information are used for booking hotels, restaurants, car rentals, and flights.",
+    "description": "Get the user information, could be: first name, last name, ID number, email, phone number, address, passport number, bank account number, credit card number. These information are used for booking hotels, restaurants, car rentals, and flights.",
+    "params": [],
+    "injected_dependencies": [
+      {
+        "name": "user",
+        "annotation": "Annotated[User, Depends('user')]",
+        "depends_on": "user"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_user_information(user: Annotated[User, Depends(\"user\")]) -> dict[str, str]:\n    \"\"\"Get the user information, could be: first name, last name, ID number, email, phone number, address, passport number, bank account number, credit card number. These information are used for booking hotels, restaurants, car rentals, and flights.\"\"\"\n    return {\n        \"First Name\": user.first_name,\n        \"Last Name\": user.last_name,\n        \"ID Number\": user.ID_number,\n        \"Email\": user.email,\n        \"Phone Number\": user.phone_number,\n        \"Address\": user.address,\n        \"Passport Number\": user.passport_number,\n        \"Bank Account Number\": user.bank_account_number,\n        \"Credit Card Number\": user.credit_card_number,\n    }"
+  },
+  {
+    "name": "get_all_hotels_in_city",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get all hotels in the given city.\n:param city: The city to get hotels from.",
+    "description": "Get all hotels in the given city.",
+    "params": [
+      {
+        "name": "city",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The city to get hotels from."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "hotels",
+        "annotation": "Annotated[Hotels, Depends('hotels')]",
+        "depends_on": "hotels"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_all_hotels_in_city(hotels: Annotated[Hotels, Depends(\"hotels\")], city: str) -> str:\n    \"\"\"Get all hotels in the given city.\n    :param city: The city to get hotels from.\n    \"\"\"\n    hotel_names = [hotel.name for hotel in hotels.hotel_list if hotel.city == city]\n    hotel_names = \"Hotel Names: \" + \"\\n\".join(hotel_names) + \"\\n\"\n    return hotel_names"
+  },
+  {
+    "name": "get_hotels_prices",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get all hotels within the given budget, should be within the price range.\n:param hotel_names: The name of the hotel to get the price range for.",
+    "description": "Get all hotels within the given budget, should be within the price range.",
+    "params": [
+      {
+        "name": "hotel_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the hotel to get the price range for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "hotels",
+        "annotation": "Annotated[Hotels, Depends('hotels')]",
+        "depends_on": "hotels"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_hotels_prices(hotels: Annotated[Hotels, Depends(\"hotels\")], hotel_names: list[str]) -> dict[str, str]:\n    \"\"\"Get all hotels within the given budget, should be within the price range.\n    :param hotel_names: The name of the hotel to get the price range for.\n    \"\"\"\n    return {\n        hotel.name: f\"Price range: {hotel.price_min} - {hotel.price_max}\"\n        for hotel in hotels.hotel_list\n        if hotel.name in hotel_names\n    }"
+  },
+  {
+    "name": "get_rating_reviews_for_hotels",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the rating and reviews for the given hotels.\n:param hotel_names: The names of the hotels to get reviews for.",
+    "description": "Get the rating and reviews for the given hotels.",
+    "params": [
+      {
+        "name": "hotel_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The names of the hotels to get reviews for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "hotels",
+        "annotation": "Annotated[Hotels, Depends('hotels')]",
+        "depends_on": "hotels"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_rating_reviews_for_hotels(\n    hotels: Annotated[Hotels, Depends(\"hotels\")],\n    hotel_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the rating and reviews for the given hotels.\n    :param hotel_names: The names of the hotels to get reviews for.\n    \"\"\"\n    return {\n        hotel.name: \"Rating: \" + str(hotel.rating) + \"\\n\" + \"Reviews: \" + \"\\n\".join(hotel.reviews)\n        for hotel in hotels.hotel_list\n        if hotel.name in hotel_names\n    }"
+  },
+  {
+    "name": "get_hotels_address",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the address of the given hotel.\n:param hotel_name: The name of the hotel to get the address for.",
+    "description": "Get the address of the given hotel.",
+    "params": [
+      {
+        "name": "hotel_name",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The name of the hotel to get the address for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "hotels",
+        "annotation": "Annotated[Hotels, Depends('hotels')]",
+        "depends_on": "hotels"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_hotels_address(hotels: Annotated[Hotels, Depends(\"hotels\")], hotel_name: str) -> dict[str, str]:\n    \"\"\"Get the address of the given hotel.\n    :param hotel_name: The name of the hotel to get the address for.\n    \"\"\"\n    return {hotel.name: hotel.address for hotel in hotels.hotel_list if hotel.name == hotel_name}"
+  },
+  {
+    "name": "get_all_restaurants_in_city",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get all restaurants in the given city.\n:param city: The city to get restaurants from.",
+    "description": "Get all restaurants in the given city.",
+    "params": [
+      {
+        "name": "city",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The city to get restaurants from."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_all_restaurants_in_city(restaurants: Annotated[Restaurants, Depends(\"restaurants\")], city: str) -> str:\n    \"\"\"Get all restaurants in the given city.\n    :param city: The city to get restaurants from.\n    \"\"\"\n    restaurant_names = [restaurant.name for restaurant in restaurants.restaurant_list if restaurant.city == city]\n    restaurant_names = \"Restaurant in \" + city + \": \" + \"\\n\".join(restaurant_names) + \"\\n\"\n    return restaurant_names"
+  },
+  {
+    "name": "get_cuisine_type_for_restaurants",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the cuisine type of the given restaurants, could be: Italian, Chinese, Indian, Japanese.\n:param restaurant_names: The name of restaurants to get the cuisine type for.",
+    "description": "Get the cuisine type of the given restaurants, could be: Italian, Chinese, Indian, Japanese.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of restaurants to get the cuisine type for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_cuisine_type_for_restaurants(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the cuisine type of the given restaurants, could be: Italian, Chinese, Indian, Japanese.\n    :param restaurant_names: The name of restaurants to get the cuisine type for.\n    \"\"\"\n    return {\n        restaurant.name: restaurant.cuisine_type\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }"
+  },
+  {
+    "name": "get_restaurants_address",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the address of the given restaurants.\n:param restaurant_names: The name of the restaurant to get the address for.",
+    "description": "Get the address of the given restaurants.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the restaurant to get the address for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_restaurants_address(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the address of the given restaurants.\n    :param restaurant_names: The name of the restaurant to get the address for.\n    \"\"\"\n    address = {\n        restaurant.name: restaurant.address\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }\n\n    return address"
+  },
+  {
+    "name": "get_rating_reviews_for_restaurants",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the rating and reviews for the given restaurants.\n:param restaurant_names: The names of the restaurants to get reviews for.",
+    "description": "Get the rating and reviews for the given restaurants.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The names of the restaurants to get reviews for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_rating_reviews_for_restaurants(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the rating and reviews for the given restaurants.\n    :param restaurant_names: The names of the restaurants to get reviews for.\n    \"\"\"\n    return {\n        restaurant.name: \"Rating: \" + str(restaurant.rating) + \"\\n\" + \"Reviews: \" + \"\\n\".join(restaurant.reviews)\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }"
+  },
+  {
+    "name": "get_dietary_restrictions_for_all_restaurants",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the dietary restrictions of the given restaurants, could be: Vegetarian, Vegan, Gluten-free, Dairy-free.\n:param restaurant_names: The name of the restaurant to get the dietary restrictions for.",
+    "description": "Get the dietary restrictions of the given restaurants, could be: Vegetarian, Vegan, Gluten-free, Dairy-free.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the restaurant to get the dietary restrictions for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_dietary_restrictions_for_all_restaurants(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the dietary restrictions of the given restaurants, could be: Vegetarian, Vegan, Gluten-free, Dairy-free.\n    :param restaurant_names: The name of the restaurant to get the dietary restrictions for.\n    \"\"\"\n    restaurant_names_ = \", \".join(restaurant_names)\n    return {\n        restaurant.name: restaurant.dietary_restrictions\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names_\n    }"
+  },
+  {
+    "name": "get_contact_information_for_restaurants",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the contact information of the given restaurants.\n:param restaurant_names: The name of the restaurant to get the contact information for.",
+    "description": "Get the contact information of the given restaurants.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the restaurant to get the contact information for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_contact_information_for_restaurants(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the contact information of the given restaurants.\n    :param restaurant_names: The name of the restaurant to get the contact information for.\n    \"\"\"\n    return {\n        restaurant.name: restaurant.contact_information\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }"
+  },
+  {
+    "name": "get_price_for_restaurants",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the price per person of the given restaurants.\n:param restaurant_names: The name of the restaurant to get the price per person for.",
+    "description": "Get the price per person of the given restaurants.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the restaurant to get the price per person for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, float]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_price_for_restaurants(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, float]:\n    \"\"\"Get the price per person of the given restaurants.\n    :param restaurant_names: The name of the restaurant to get the price per person for.\n    \"\"\"\n    return {\n        restaurant.name: restaurant.price_per_person\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }"
+  },
+  {
+    "name": "check_restaurant_opening_hours",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the openning hours of the given restaurants, check if the restaurant is open.\n:param restaurant_names: The name of the restaurant to get the operating hours for.",
+    "description": "Get the openning hours of the given restaurants, check if the restaurant is open.",
+    "params": [
+      {
+        "name": "restaurant_names",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the restaurant to get the operating hours for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "restaurants",
+        "annotation": "Annotated[Restaurants, Depends('restaurants')]",
+        "depends_on": "restaurants"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "check",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def check_restaurant_opening_hours(\n    restaurants: Annotated[Restaurants, Depends(\"restaurants\")],\n    restaurant_names: list[str],\n) -> dict[str, str]:\n    \"\"\"Get the openning hours of the given restaurants, check if the restaurant is open.\n    :param restaurant_names: The name of the restaurant to get the operating hours for.\n    \"\"\"\n    return {\n        restaurant.name: restaurant.operating_hours\n        for restaurant in restaurants.restaurant_list\n        if restaurant.name in restaurant_names\n    }"
+  },
+  {
+    "name": "get_all_car_rental_companies_in_city",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get all car rental companies in the given city.\n:param city: The city to get car rental companies from.",
+    "description": "Get all car rental companies in the given city.",
+    "params": [
+      {
+        "name": "city",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The city to get car rental companies from."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_all_car_rental_companies_in_city(car_rental: Annotated[CarRental, Depends(\"car_rental\")], city: str) -> str:\n    \"\"\"Get all car rental companies in the given city.\n    :param city: The city to get car rental companies from.\n    \"\"\"\n    company_names = [company.name for company in car_rental.company_list if company.city == city]\n    company_names = \"Car Rental Companies in \" + city + \": \" + \"\\n\".join(company_names) + \"\\n\"\n    return company_names"
+  },
+  {
+    "name": "get_car_types_available",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the car types available for the given car rental companies.\n:param company_name: The name of the car rental company to get the car types available for.",
+    "description": "Get the car types available for the given car rental companies.",
+    "params": [
+      {
+        "name": "company_name",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the car rental company to get the car types available for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "dict[str, list]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_car_types_available(\n    car_rental: Annotated[CarRental, Depends(\"car_rental\")], company_name: list[str]\n) -> dict[str, list]:\n    \"\"\"Get the car types available for the given car rental companies.\n    :param company_name: The name of the car rental company to get the car types available for.\n    \"\"\"\n    return {\n        company.name: company.car_types_available for company in car_rental.company_list if company.name in company_name\n    }"
+  },
+  {
+    "name": "get_rating_reviews_for_car_rental",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the rating and reviews for the given car rental companies.\n:param company_name: The name of the car rental company to get reviews for.",
+    "description": "Get the rating and reviews for the given car rental companies.",
+    "params": [
+      {
+        "name": "company_name",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the car rental company to get reviews for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_rating_reviews_for_car_rental(\n    car_rental: Annotated[CarRental, Depends(\"car_rental\")], company_name: list[str]\n) -> dict[str, str]:\n    \"\"\"Get the rating and reviews for the given car rental companies.\n    :param company_name: The name of the car rental company to get reviews for.\n    \"\"\"\n    return {\n        company.name: \"Rating: \" + str(company.rating) + \"\\n\" + \"Reviews: \" + \"\\n\".join(company.reviews)\n        for company in car_rental.company_list\n        if company.name in company_name\n    }"
+  },
+  {
+    "name": "get_car_fuel_options",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the fuel options of the given car rental companies.\n:param company_name: The name of the car rental company to get the fuel options for.",
+    "description": "Get the fuel options of the given car rental companies.",
+    "params": [
+      {
+        "name": "company_name",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the car rental company to get the fuel options for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "dict[str, list]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_car_fuel_options(\n    car_rental: Annotated[CarRental, Depends(\"car_rental\")], company_name: list[str]\n) -> dict[str, list]:\n    \"\"\"Get the fuel options of the given car rental companies.\n    :param company_name: The name of the car rental company to get the fuel options for.\n    \"\"\"\n    return {company.name: company.fuel_options for company in car_rental.company_list if company.name in company_name}"
+  },
+  {
+    "name": "get_car_rental_address",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the address of the given car rental companies.\n:param company_name: The name of the car rental company to get the address for.",
+    "description": "Get the address of the given car rental companies.",
+    "params": [
+      {
+        "name": "company_name",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the car rental company to get the address for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "dict[str, str]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_car_rental_address(\n    car_rental: Annotated[CarRental, Depends(\"car_rental\")], company_name: list[str]\n) -> dict[str, str]:\n    \"\"\"Get the address of the given car rental companies.\n    :param company_name: The name of the car rental company to get the address for.\n    \"\"\"\n    return {company.name: company.address for company in car_rental.company_list if company.name in company_name}"
+  },
+  {
+    "name": "get_car_price_per_day",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the price per day of the given car rental companies.\n:param company_name: The name of the car rental company to get the price per day for.",
+    "description": "Get the price per day of the given car rental companies.",
+    "params": [
+      {
+        "name": "company_name",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The name of the car rental company to get the price per day for."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "car_rental",
+        "annotation": "Annotated[CarRental, Depends('car_rental')]",
+        "depends_on": "car_rental"
+      }
+    ],
+    "returns": "dict[str, float]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_car_price_per_day(\n    car_rental: Annotated[CarRental, Depends(\"car_rental\")], company_name: list[str]\n) -> dict[str, float]:\n    \"\"\"Get the price per day of the given car rental companies.\n    :param company_name: The name of the car rental company to get the price per day for.\n    \"\"\"\n    return {company.name: company.price_per_day for company in car_rental.company_list if company.name in company_name}"
+  },
+  {
+    "name": "create_calendar_event",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Creates a new calendar event with the given details and adds it to the calendar.\nIt also sends an email to the participants with the event details.\n\n:param title: The title of the event.\n:param start_time: The start time of the event. Must be in format YYYY-MM-DD HH:MM.\n:param end_time: The end time of the event. Must be in format YYYY-MM-DD HH:MM.\n:param description: The description of the event.\n:param participants: The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included..\n:param location: The location of the event. If `null`, no location is set.",
+    "description": "Creates a new calendar event with the given details and adds it to the calendar.\nIt also sends an email to the participants with the event details.",
+    "params": [
+      {
+        "name": "title",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The title of the event."
+      },
+      {
+        "name": "start_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The start time of the event. Must be in format YYYY-MM-DD HH:MM."
+      },
+      {
+        "name": "end_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The end time of the event. Must be in format YYYY-MM-DD HH:MM."
+      },
+      {
+        "name": "description",
+        "annotation": "str",
+        "required": false,
+        "default": "",
+        "description": "The description of the event."
+      },
+      {
+        "name": "participants",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included.."
+      },
+      {
+        "name": "location",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The location of the event. If `null`, no location is set."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      },
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "CalendarEvent",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "create",
+      "body_mutations": [
+        "via Calendar.create_event: self.events[id_] = event",
+        "via Calendar.create_event: participants.append(self.account_email)",
+        "via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Creates",
+        "adds",
+        "sends"
+      ]
+    },
+    "body_source": "def create_calendar_event(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    title: str,\n    start_time: str,\n    end_time: str,\n    description: str = \"\",\n    participants: list[str] | None = None,\n    location: str | None = None,\n) -> CalendarEvent:\n    \"\"\"Creates a new calendar event with the given details and adds it to the calendar.\n    It also sends an email to the participants with the event details.\n\n    :param title: The title of the event.\n    :param start_time: The start time of the event. Must be in format YYYY-MM-DD HH:MM.\n    :param end_time: The end time of the event. Must be in format YYYY-MM-DD HH:MM.\n    :param description: The description of the event.\n    :param participants: The list of participants' email addresses. If `null`, no participants are set. The calendar owner's email address is always included..\n    :param location: The location of the event. If `null`, no location is set.\n    \"\"\"\n    parsed_start_time = datetime.datetime.strptime(start_time, \"%Y-%m-%d %H:%M\")\n    parsed_end_time = datetime.datetime.strptime(end_time, \"%Y-%m-%d %H:%M\")\n    if participants is None:\n        participants = []\n    new_event = calendar.create_event(title, description, parsed_start_time, parsed_end_time, location, participants)\n    inbox.send_email(\n        recipients=participants,\n        subject=f\"Invitation: {title}\",\n        body=description,\n        attachments=[new_event],\n    )\n    return new_event"
+  },
+  {
+    "name": "search_calendar_events",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.\n\n:param query: The query string to search for in event titles and descriptions.\n:param date: The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events.",
+    "description": "Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.",
+    "params": [
+      {
+        "name": "query",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The query string to search for in event titles and descriptions."
+      },
+      {
+        "name": "date",
+        "annotation": "str | None",
+        "required": false,
+        "default": null,
+        "description": "The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "list[CalendarEvent]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "search",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def search_calendar_events(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    query: str,\n    date: str | None = None,\n) -> list[CalendarEvent]:\n    \"\"\"Searches calendar events that match the given query in the tile or the description. If provided, filters events by date.\n\n    :param query: The query string to search for in event titles and descriptions.\n    :param date: The date for which to search events. Must be in format YYYY-MM-DD. If `null`, searches all events.\n    \"\"\"\n    if date is not None:\n        date_ = datetime.datetime.strptime(date, \"%Y-%m-%d\").date()\n    else:\n        date_ = None\n    matches = calendar.search_events(query, date_)\n    if len(matches) == 0:\n        raise ValueError(\"No events found. Try with a different query.\")\n    return matches"
+  },
+  {
+    "name": "get_day_calendar_events",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.\n\n:param day: The day for which to return the appointments. Must be in format YYYY-MM-DD.",
+    "description": "Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.",
+    "params": [
+      {
+        "name": "day",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The day for which to return the appointments. Must be in format YYYY-MM-DD."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      }
+    ],
+    "returns": "list[CalendarEvent]",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_day_calendar_events(calendar: Annotated[Calendar, Depends(\"calendar\")], day: str) -> list[CalendarEvent]:\n    \"\"\"Returns the appointments for the given `day`. Returns a list of dictionaries with informations about each meeting.\n\n    :param day: The day for which to return the appointments. Must be in format YYYY-MM-DD.\n    \"\"\"\n    date = datetime.datetime.strptime(day, \"%Y-%m-%d\")\n    return calendar.get_by_day(date.date())"
+  },
+  {
+    "name": "cancel_calendar_event",
+    "module": "agentdojo/default_suites/v1/tools/calendar_client.py",
+    "docstring": "Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\nIt will also send an email to the participants notifying them of the cancellation.\n\n:param event_id: The ID of the event to cancel.",
+    "description": "Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\nIt will also send an email to the participants notifying them of the cancellation.",
+    "params": [
+      {
+        "name": "event_id",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The ID of the event to cancel."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "calendar",
+        "annotation": "Annotated[Calendar, Depends('calendar')]",
+        "depends_on": "calendar"
+      },
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "str",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "cancel",
+      "body_mutations": [
+        "via Calendar.cancel_event: self.events[event_id].status = EvenStatus.canceled",
+        "via Calendar.cancel_event: via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Cancels",
+        "marked as",
+        "send"
+      ]
+    },
+    "body_source": "def cancel_calendar_event(\n    calendar: Annotated[Calendar, Depends(\"calendar\")],\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    event_id: str,\n) -> str:\n    \"\"\"Cancels the event with the given `event_id`. The event will be marked as canceled and no longer appear in the calendar.\n    It will also send an email to the participants notifying them of the cancellation.\n\n    :param event_id: The ID of the event to cancel.\n    \"\"\"\n    calendar.cancel_event(inbox, CalendarEventID(event_id))\n    return f\"Event with ID {event_id} has been canceled and participants have been notified.\""
+  },
+  {
+    "name": "reserve_hotel",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Makes a reservation for a hotel with the provided details..\n:param hotel: Where the reservation is made. It must only be the name of the hotel.\n:param start_day: The check-in day for the hotel. Should be in ISO format 'YYYY-MM-DD'.\n:param end_day: The check-out day for the hotel. Should be in ISO format 'YYYY-MM-DD'.",
+    "description": "Makes a reservation for a hotel with the provided details..",
+    "params": [
+      {
+        "name": "hotel",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Where the reservation is made. It must only be the name of the hotel."
+      },
+      {
+        "name": "start_day",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The check-in day for the hotel. Should be in ISO format 'YYYY-MM-DD'."
+      },
+      {
+        "name": "end_day",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The check-out day for the hotel. Should be in ISO format 'YYYY-MM-DD'."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "reservation",
+        "annotation": "Annotated[Reservation, Depends('reservation')]",
+        "depends_on": "reservation"
+      },
+      {
+        "name": "user",
+        "annotation": "Annotated[User, Depends('user')]",
+        "depends_on": "user"
+      }
+    ],
+    "returns": "str",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "reserve",
+      "body_mutations": [
+        "reservation.contact_information = get_user_information(user)['Phone Number']",
+        "reservation.reservation_type = ReservationType.HOTEL",
+        "reservation.title = hotel",
+        "reservation.start_time = datetime.datetime.fromisoformat(start_day)",
+        "reservation.end_time = datetime.datetime.fromisoformat(end_day)"
+      ],
+      "docstring_phrases": [
+        "Makes a reservation"
+      ]
+    },
+    "body_source": "def reserve_hotel(\n    reservation: Annotated[Reservation, Depends(\"reservation\")],\n    user: Annotated[User, Depends(\"user\")],\n    hotel: str,\n    start_day: str,\n    end_day: str,\n) -> str:\n    \"\"\"Makes a reservation for a hotel with the provided details..\n    :param hotel: Where the reservation is made. It must only be the name of the hotel.\n    :param start_day: The check-in day for the hotel. Should be in ISO format 'YYYY-MM-DD'.\n    :param end_day: The check-out day for the hotel. Should be in ISO format 'YYYY-MM-DD'.\n    \"\"\"\n    reservation.contact_information = get_user_information(user)[\"Phone Number\"]\n    reservation.reservation_type = ReservationType.HOTEL\n    reservation.title = hotel\n    reservation.start_time = datetime.datetime.fromisoformat(start_day)\n    reservation.end_time = datetime.datetime.fromisoformat(end_day)\n    return f\"Reservation for {hotel} from {start_day} to {end_day} has been made successfully.\""
+  },
+  {
+    "name": "reserve_car_rental",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Makes a reservation for a car rental with the provided details.\n\n:param company: Where the reservation is made. It must only be the name of the car rental company.\n:param start_time: The reservation starting time. Should be in ISO format 'YYYY-MM-DD HH:MM'.\n:param end_time: The reservation end time. Should be in ISO format 'YYYY-MM-DD HH:MM'.",
+    "description": "Makes a reservation for a car rental with the provided details.",
+    "params": [
+      {
+        "name": "company",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Where the reservation is made. It must only be the name of the car rental company."
+      },
+      {
+        "name": "start_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The reservation starting time. Should be in ISO format 'YYYY-MM-DD HH:MM'."
+      },
+      {
+        "name": "end_time",
+        "annotation": "str | None",
+        "required": true,
+        "default": null,
+        "description": "The reservation end time. Should be in ISO format 'YYYY-MM-DD HH:MM'."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "reservation",
+        "annotation": "Annotated[Reservation, Depends('reservation')]",
+        "depends_on": "reservation"
+      },
+      {
+        "name": "user",
+        "annotation": "Annotated[User, Depends('user')]",
+        "depends_on": "user"
+      }
+    ],
+    "returns": null,
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "reserve",
+      "body_mutations": [
+        "reservation.contact_information = get_user_information(user)['Phone Number']",
+        "reservation.reservation_type = ReservationType.CAR",
+        "reservation.title = company",
+        "reservation.start_time = datetime.datetime.fromisoformat(start_time)",
+        "reservation.end_time = datetime.datetime.fromisoformat(start_time)"
+      ],
+      "docstring_phrases": [
+        "Makes a reservation"
+      ]
+    },
+    "body_source": "def reserve_car_rental(\n    reservation: Annotated[Reservation, Depends(\"reservation\")],\n    user: Annotated[User, Depends(\"user\")],\n    company: str,\n    start_time: str,\n    end_time: str | None,\n):\n    \"\"\"Makes a reservation for a car rental with the provided details.\n\n    :param company: Where the reservation is made. It must only be the name of the car rental company.\n    :param start_time: The reservation starting time. Should be in ISO format 'YYYY-MM-DD HH:MM'.\n    :param end_time: The reservation end time. Should be in ISO format 'YYYY-MM-DD HH:MM'.\n    \"\"\"\n    reservation.contact_information = get_user_information(user)[\"Phone Number\"]\n    reservation.reservation_type = ReservationType.CAR\n    reservation.title = company\n    reservation.start_time = datetime.datetime.fromisoformat(start_time)\n    reservation.end_time = datetime.datetime.fromisoformat(start_time)\n    return f\"Reservation for a car at {company} from {start_time} to {end_time} has been made successfully.\""
+  },
+  {
+    "name": "reserve_restaurant",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Makes a reservation for a restaurant with the provided details.\n\n:param restaurant: Where the reservation is made. It must only be the name of the restaurant.\n:param start_time: The reservation time. Should be in ISO format 'YYYY-MM-DD HH:MM'.\nThe end time is automatically set to be two hours after the start of the reservation.",
+    "description": "Makes a reservation for a restaurant with the provided details.",
+    "params": [
+      {
+        "name": "restaurant",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "Where the reservation is made. It must only be the name of the restaurant."
+      },
+      {
+        "name": "start_time",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The reservation time. Should be in ISO format 'YYYY-MM-DD HH:MM'. The end time is automatically set to be two hours after the start of the reservation."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "reservation",
+        "annotation": "Annotated[Reservation, Depends('reservation')]",
+        "depends_on": "reservation"
+      },
+      {
+        "name": "user",
+        "annotation": "Annotated[User, Depends('user')]",
+        "depends_on": "user"
+      }
+    ],
+    "returns": "str",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "reserve",
+      "body_mutations": [
+        "reservation.contact_information = get_user_information(user)['Phone Number']",
+        "reservation.reservation_type = ReservationType.RESTAURANT",
+        "reservation.title = restaurant",
+        "reservation.start_time = datetime.datetime.fromisoformat(start_time)",
+        "reservation.end_time = datetime.datetime.fromisoformat(start_time) + datetime.timedelta(hours=2)"
+      ],
+      "docstring_phrases": [
+        "Makes a reservation"
+      ]
+    },
+    "body_source": "def reserve_restaurant(\n    reservation: Annotated[Reservation, Depends(\"reservation\")],\n    user: Annotated[User, Depends(\"user\")],\n    restaurant: str,\n    start_time: str,\n) -> str:\n    \"\"\"Makes a reservation for a restaurant with the provided details.\n\n    :param restaurant: Where the reservation is made. It must only be the name of the restaurant.\n    :param start_time: The reservation time. Should be in ISO format 'YYYY-MM-DD HH:MM'.\n    The end time is automatically set to be two hours after the start of the reservation.\n    \"\"\"\n    reservation.contact_information = get_user_information(user)[\"Phone Number\"]\n    reservation.reservation_type = ReservationType.RESTAURANT\n    reservation.title = restaurant\n    reservation.start_time = datetime.datetime.fromisoformat(start_time)\n    reservation.end_time = datetime.datetime.fromisoformat(start_time) + datetime.timedelta(hours=2)\n    reservation_date = reservation.start_time.date().isoformat()\n    start_time = reservation.start_time.strftime(\"%H:%M\")\n    end_time = reservation.end_time.strftime(\"%H:%M\")\n    return f\"Reservation for {restaurant} from {start_time} to {end_time} on {reservation_date} has been made successfully.\""
+  },
+  {
+    "name": "get_flight_information",
+    "module": "agentdojo/default_suites/v1/tools/travel_booking_client.py",
+    "docstring": "Get the flight information from the departure city to the arrival city.\n:param departure_city: The city to depart from.\n:param arrival_city: The city to arrive at.",
+    "description": "Get the flight information from the departure city to the arrival city.",
+    "params": [
+      {
+        "name": "departure_city",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The city to depart from."
+      },
+      {
+        "name": "arrival_city",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The city to arrive at."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "flights",
+        "annotation": "Annotated[Flights, Depends('flights')]",
+        "depends_on": "flights"
+      }
+    ],
+    "returns": "str",
+    "classification": "read",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "get",
+      "body_mutations": [],
+      "docstring_phrases": []
+    },
+    "body_source": "def get_flight_information(\n    flights: Annotated[Flights, Depends(\"flights\")],\n    departure_city: str,\n    arrival_city: str,\n) -> str:\n    \"\"\"Get the flight information from the departure city to the arrival city.\n    :param departure_city: The city to depart from.\n    :param arrival_city: The city to arrive at.\n    \"\"\"\n    flight_info = [\n        f\"Airline: {flight.airline}, Flight Number: {flight.flight_number}, Departure Time: {flight.departure_time}, Arrival Time: {flight.arrival_time}, Price: {flight.price}, Contact Information: {flight.contact_information}\"\n        for flight in flights.flight_list\n        if flight.departure_city == departure_city and flight.arrival_city == arrival_city\n    ]\n    return \"\\n\".join(flight_info)"
+  },
+  {
+    "name": "send_email",
+    "module": "agentdojo/default_suites/v1/tools/email_client.py",
+    "docstring": "Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.\n\n:param recipients: The list with the email addresses of the recipients.\n:param subject: The subject of the email.\n:param body: The body of the email.\n:param attachments: The list of attachments to include in the email. If `null`, no attachments are included.\nIf the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the\ncloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\".\nA calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`\n(in ISO format), `location`, and participants (a list of emails).\n:param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.\n:param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.",
+    "description": "Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.",
+    "params": [
+      {
+        "name": "recipients",
+        "annotation": "list[str]",
+        "required": true,
+        "default": null,
+        "description": "The list with the email addresses of the recipients."
+      },
+      {
+        "name": "subject",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The subject of the email."
+      },
+      {
+        "name": "body",
+        "annotation": "str",
+        "required": true,
+        "default": null,
+        "description": "The body of the email."
+      },
+      {
+        "name": "attachments",
+        "annotation": "list[dict] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of attachments to include in the email. If `null`, no attachments are included. If the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the cloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\". A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time` (in ISO format), `location`, and participants (a list of emails)."
+      },
+      {
+        "name": "cc",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of email addresses to include in the CC field. If `null`, no email addresses are included."
+      },
+      {
+        "name": "bcc",
+        "annotation": "list[str] | None",
+        "required": false,
+        "default": null,
+        "description": "The list of email addresses to include in the BCC field. If `null`, no email addresses are included."
+      }
+    ],
+    "injected_dependencies": [
+      {
+        "name": "inbox",
+        "annotation": "Annotated[Inbox, Depends('inbox')]",
+        "depends_on": "inbox"
+      }
+    ],
+    "returns": "Email",
+    "classification": "state_changing",
+    "classification_certain": true,
+    "classification_evidence": {
+      "name_verb": "send",
+      "body_mutations": [
+        "via Inbox.send_email: self.emails[new_email.id_] = new_email"
+      ],
+      "docstring_phrases": [
+        "Sends"
+      ]
+    },
+    "body_source": "def send_email(\n    inbox: Annotated[Inbox, Depends(\"inbox\")],\n    recipients: list[str],\n    subject: str,\n    body: str,\n    attachments: list[dict] | None = None,\n    cc: list[str] | None = None,\n    bcc: list[str] | None = None,\n) -> Email:\n    \"\"\"Sends an email with the given `body` to the given `address`. Returns a dictionary with the email details.\n\n    :param recipients: The list with the email addresses of the recipients.\n    :param subject: The subject of the email.\n    :param body: The body of the email.\n    :param attachments: The list of attachments to include in the email. If `null`, no attachments are included.\n    If the attachment has as \"type\" \"file\", then it is expected to have a field \"file_id\", with the ID of the file in the\n    cloud drive. If the attachment has as \"type\" \"event\", then it is expected to be a calendar event in the field \"event_details\".\n    A calendar event has the following fields: `title`, `description`, `start_time` (in ISO format), `end_time`\n    (in ISO format), `location`, and participants (a list of emails).\n    :param cc: The list of email addresses to include in the CC field. If `null`, no email addresses are included.\n    :param bcc: The list of email addresses to include in the BCC field. If `null`, no email addresses are included.\n    \"\"\"\n    if attachments is not None:\n        parsed_attachments = []\n        for attachment in attachments:\n            if not isinstance(attachment, dict):\n                raise ValueError(\"Attachments must be dictionaries.\")\n            if \"type\" not in attachment:\n                raise ValueError(\"Attachment must have a 'type' field.\")\n            if attachment[\"type\"] == \"file\" or \"file_id\" in attachment:\n                if \"file_id\" not in attachment:\n                    raise ValueError(\"Attachment of type 'file' must have a 'file_id' field.\")\n                parsed_attachments.append(CloudDriveFileID(attachment[\"file_id\"]))\n            else:\n                if \"event_details\" not in attachment:\n                    raise ValueError(\"Attachment of type 'event' must have an 'event_details' field.\")\n                parsed_attachments.append(CalendarEvent(**attachment[\"event_details\"]))\n    else:\n        parsed_attachments = None\n    return inbox.send_email(recipients, subject, body, parsed_attachments, cc, bcc)"
+  }
+]

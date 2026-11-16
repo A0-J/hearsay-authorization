@@ -126,3 +126,27 @@ opened when this amendment was written.
   review.
 
 The cells, settings and analysis are those above. The case-level analysis is `experiments/analyze_gen.py`.
+
+## Amendment 2 (2026-11-17, after the extraction and before any AgentDojo task was reviewed)
+
+1. **Extraction method.** Installing and running AgentDojo was not permitted in this environment. Instead, the
+   downloaded wheel was read as data:
+   - Python sources were parsed with `ast` and YAML with `yaml.safe_load`; no AgentDojo code was executed.
+   - Arguments that depend on the environment were resolved against the extracted environment by a
+     restricted evaluator.
+   - The script is `experiments/extract_agentdojo.py`. The output, the wheel's SHA-256 and each input file's
+     hash are in `dataset/sources/agentdojo_v1/manifest.json`.
+   - The suites hold 97 user tasks, and 60 of them have a state-changing ground-truth call.
+2. **Combined tasks are excluded.** These tasks (slack 17–20; workspace 4, 19, 23 and 36–39) join the prompts
+   and ground truths of two other user tasks. They repeat their components' scenarios, so they are not new
+   cases.
+3. **Ground truth that contradicts the task.** A task is excluded under criterion 3 if its ground-truth probe
+   call contradicts the task's own `utility` check on the probe's recipient or amount. In that case no single
+   intended call is defined. The extraction flagged banking 5 and banking 11; the review checks every
+   selected task.
+4. **Message bodies.** Where the ground truth gives a placeholder body (`<summary>`, `...`), the probe uses
+   Experiment 1's neutral placeholder rule.
+5. **Date (`today`).** Each suite's own date where one exists: travel and workspace, 2024-05-15. Slack has no
+   date and uses 2024-05-15 too. Banking has no date and uses 2022-03-08, the day after the latest past
+   transaction in its environment (its scheduled transactions fall after it).
+6. **Case ids.** `A` + suite + task number: Abank03, Aslack07, Atravel00, Awork25. One user task = one case.
