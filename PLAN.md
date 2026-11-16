@@ -363,3 +363,28 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
   - The GEE did not yield usable standard errors (near-separation).
 - **Not done:** the Claude replication on the same frozen cells (`configs/exp1_claude_sonnet55.json`
   is ready).
+
+### 2026-11-16 — Experiment 1 run 1, Claude Sonnet 5.5 replication completed
+
+- **Setup:**
+  - the same frozen dataset (v1.0.0-exp1), instruction texts and analysis as the GPT-4.1 run;
+  - run `E1-claude-sonnet-5-5-run1` (`configs/exp1_claude_sonnet55.json`): 3,828 calls, 0 parse errors,
+    0 missing, served model `claude-sonnet-5-5` in every call;
+  - cost $13.71 at the Anthropic list price ($2 / $10 per million tokens);
+  - reported on its own and never pooled with GPT-4.1.
+- **Configuration difference:** sampling was temperature 1.0 only. No `thinking` field was sent, so the
+  model's default applied (adaptive thinking per Anthropic's documentation; the thinking text is not
+  returned). GPT-4.1 has no reasoning mode, so the two runs differ in more than model family.
+- **Where things are:** raw replies are archived (`results/registry.json`); the analysis is in
+  `results/E1-claude-sonnet-5-5-run1/analysis/`.
+- **Observed** (reported without interpretation):
+  - All 3,828 decisions matched the evidence side. This was checked by an independent recount from
+    the raw replies.
+  - Every pre-registered contrast (H1–H8, Amendment 1) is exactly 0, so the design is at floor/ceiling
+    for this model.
+  - H5 did not replicate: under the negative claim on valid evidence, 132/132 calls approved under
+    evidence-aware and 132/132 under evidence-explicit. GPT-4.1 had a −82.6-point drop under
+    evidence-aware.
+  - In 113 of the 132 evidence-aware replies, the reason says the withdrawal is not reflected in the
+    records.
+  - All 792 valid-side approvals cite the covering approval's id.

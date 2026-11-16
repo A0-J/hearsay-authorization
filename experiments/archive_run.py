@@ -21,7 +21,8 @@ from common import ROOT
 
 REGISTRY = ROOT / "results" / "registry.json"
 ARCHIVES = ROOT / "archives"
-PRICE_PER_MTOK = {"gpt-4.1": (2.0, 8.0)}   # USD per million input / output tokens (OpenAI list price, 2026-11)
+PRICE_PER_MTOK = {"gpt-4.1": (2.0, 8.0),             # USD per million input / output tokens (OpenAI list price, 2026-11)
+                  "claude-sonnet-5-5": (2.0, 10.0)}  # Anthropic list price (2026-11); no caching, no batch
 
 
 def sha256(path: Path) -> str:

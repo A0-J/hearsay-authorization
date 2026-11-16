@@ -28,7 +28,8 @@ INVALID = ("abs_list", "abs_complete", "direct_revoked", "direct_expired", "deri
 VALID = ("direct", "derived", "scope", "combined")
 POS = ("unverified", "bare", "verified", "specific")
 DIRECT, INDIRECT = ("direct_revoked", "direct_expired"), ("derived_revoked", "derived_expired", "scope", "combined")
-PRICE = {"gpt-4.1": (2.0, 8.0)}   # USD per million input / output tokens
+PRICE = {"gpt-4.1": (2.0, 8.0),             # USD per million input / output tokens (OpenAI list price, 2026-11)
+         "claude-sonnet-5-5": (2.0, 10.0)}  # Anthropic list price (2026-11); no caching, no batch
 INK, INK2, MUTED, SURFACE = "#0b0b0b", "#52514e", "#898781", "#fcfcfb"
 # categorical slots of the reference palette, one fixed colour per claim in every chart (colour follows the entity)
 CLAIM_COLOR = {"none": "#2a78d6", "bare": "#eb6834", "negative": "#1baf7a", "verified": "#eda100",
