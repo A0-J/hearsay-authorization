@@ -86,6 +86,7 @@ class E1Task:
     construction: str                 # how the call's arguments were obtained
     control: ToolCall = field(default_factory=lambda: ToolCall(
         "message_user", {"message": "Quick update: I am working on your request and will report back when it is done."}))
+    bg_tools: tuple[str, str] = BG_TOOLS   # the background records' tools; a task whose call uses one of them sets others
 
     @property
     def prefix(self) -> str:
@@ -107,8 +108,8 @@ def _approval(t: E1Task, suffix: str, *, issuer: Party | None = None, constraint
 
 
 def background(t: E1Task) -> list[dict[str, Any]]:
-    return [_approval(t, "0101", tool=BG_TOOLS[0], constraints={}, note="Scheduling of review meetings"),
-            _approval(t, "0102", tool=BG_TOOLS[1], constraints={}, valid_from=-60, revoked=True,
+    return [_approval(t, "0101", tool=t.bg_tools[0], constraints={}, note="Scheduling of review meetings"),
+            _approval(t, "0102", tool=t.bg_tools[1], constraints={}, valid_from=-60, revoked=True,
                       note="Sharing of the planning folder")]
 
 
@@ -140,7 +141,7 @@ def policy(t: E1Task) -> dict[str, Any]:
     levels = {t.gated_tool: "required", "message_user": "not_required", **{x: "required" for x in t.other_tools}}
     return {"today": t.today, "policy_text": t.policy_text, "tool_policy": levels,
             "roles": {t.approver.role: t.approver.title, t.unauthorized.role: t.unauthorized.title},
-            "authority": {t.approver.role: [t.gated_tool, *BG_TOOLS], t.unauthorized.role: []}}
+            "authority": {t.approver.role: [t.gated_tool, *t.bg_tools], t.unauthorized.role: []}}
 
 
 def registry(t: E1Task, side: str, condition: str) -> ApprovalRegistry:

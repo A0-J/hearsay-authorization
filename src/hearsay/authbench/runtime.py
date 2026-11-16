@@ -166,7 +166,8 @@ class ToolRouter:
 
     def __init__(self, env: Environment, task: AuthBenchTask, verification: Verification,
                  registry: ApprovalRegistry, *, delegation: str, record_lookup: bool = False,
-                 transport: Transport | None = None) -> None:
+                 transport: Transport | None = None, workspace: Any = None,
+                 context_resolver: Callable[..., dict[str, Any]] | None = None) -> None:
         ensure_importable()
         from authorization_eva_sandbox.evaluation.harness.tool_ir import select_allowlisted_tools
         from authorization_eva_sandbox.evaluation.harness.tool_name_adapter import ToolNameAdapter
@@ -176,7 +177,9 @@ class ToolRouter:
         self.transport = transport or default_transport()
         self.surface = select_allowlisted_tools(env.openapi, list(task.allowlist))
         self.by_name = {t["name"]: t for t in self.surface}
-        self.local = [FINISH] + ([LOOKUP] if record_lookup else [])
+        self.workspace = workspace          # a local stand-in for the benchmark's Docker workspace (e2e.py)
+        self.context_resolver = context_resolver   # (tool, args, state, events) -> context; e2e.py
+        self.local = [FINISH] + ([LOOKUP] if record_lookup else []) + (list(workspace.specs) if workspace else [])
         self.names = ToolNameAdapter([t["name"] for t in self.surface] + self.local)
         self.events: list[dict[str, Any]] = []
         self.proposals: list[dict[str, Any]] = []
@@ -185,7 +188,8 @@ class ToolRouter:
     def model_tools(self) -> list[dict[str, Any]]:
         tools = [{"type": "function", "name": self.names.publish(t["name"]), "description": t["description"],
                   "parameters": t["parameters"], "strict": False} for t in self.surface]
-        tools += [{"type": "function", "name": self.names.publish(n), "strict": False, **LOCAL_TOOLS[n]}
+        specs = {**LOCAL_TOOLS, **(self.workspace.specs if self.workspace else {})}
+        tools += [{"type": "function", "name": self.names.publish(n), "strict": False, **specs[n]}
                   for n in self.local]
         return tools
 
@@ -203,6 +207,10 @@ class ToolRouter:
             result = self.registry.lookup(str(args.get("approval_id", "")))
             event.update(effect="record_lookup", forwarded=False, result=result)
             return result
+        if self.workspace is not None and tool in self.workspace.specs:
+            result = self.workspace.handle(tool, args)
+            event.update(effect="workspace", forwarded=False, result=result)
+            return {"output": result}
         entry = self.by_name.get(tool)
         if entry is None:
             event.update(effect="unknown", forwarded=False)
@@ -210,7 +218,10 @@ class ToolRouter:
         event["effect"] = effect(tool)
         event["verified"] = event["effect"] != READ
         if event["verified"]:
-            context = resolve_context(tool, self.env.state()) if needs_context(tool) else {}
+            if self.context_resolver is not None:
+                context = self.context_resolver(tool, args, self.env.state(), self.events[:-1]) or {}
+            else:
+                context = resolve_context(tool, self.env.state()) if needs_context(tool) else {}
             call = ToolCall(tool, args, context)
             decision = self.verification(call, self.delegation)
             event["proposal_index"] = len(self.proposals)
@@ -255,13 +266,17 @@ def unexplained_changes(before: dict, after: dict, events: list[dict[str, Any]])
 
 
 def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry: ApprovalRegistry,
-                trusted_context: str | None = None, out_dir: Path | None = None) -> dict[str, Any]:
-    if task.needs_workspace and not config.allow_missing_workspace:
+                trusted_context: str | None = None, out_dir: Path | None = None, verification: Any = None,
+                workspace: Any = None, context_resolver: Callable[..., dict[str, Any]] | None = None) -> dict[str, Any]:
+    """`verification` replaces the default Verification (Experiment 3 uses Experiment 1's verifier formats);
+    `workspace` gives the executor a local stand-in for the benchmark's workspace tools."""
+    if task.needs_workspace and not config.allow_missing_workspace and workspace is None:
         raise WorkspaceRequired(f"{task.task_id} mounts {list(task.shell_tools)}; the Docker workspace is not "
                                 "wired yet")
-    verification = Verification(enforce=config.enforce, shadow=config.shadow, registry=registry, client=client,
-                                model=config.role_model("verifier"), n_votes=config.n_votes, request=task.instruction,
-                                trusted_context=trusted_context)
+    if verification is None:
+        verification = Verification(enforce=config.enforce, shadow=config.shadow, registry=registry, client=client,
+                                    model=config.role_model("verifier"), n_votes=config.n_votes,
+                                    request=task.instruction, trusted_context=trusted_context)
     with Environment(task) as env:
         state_before = env.state()
         planner = None
@@ -272,7 +287,8 @@ def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry
         else:
             delegation = executor_input = task.instruction
         router = ToolRouter(env, task, verification, registry, delegation=delegation,
-                            record_lookup=config.record_lookup)
+                            record_lookup=config.record_lookup, workspace=workspace,
+                            context_resolver=context_resolver)
 
         def after_turn(turn: int) -> bool:
             env.agent_step(turn + 1)
