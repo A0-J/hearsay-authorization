@@ -47,6 +47,20 @@ results. This study must not claim them.
 4. **Authorization and intent are separate labels.** The semantic check is supplementary, not the main
    contribution.
 
+## Flagged by a second literature review (2026-11-16): abstracts checked, full texts not yet read
+
+| work | what it does (abstract level) | overlap to check in the full text |
+|---|---|---|
+| *Auditing Provenance Sensitivity in LLM Agent Action Selection* (Liao, arXiv:2607.20827, July 2026) | holds the task, proposition and policy fixed, varies only the source authority (textual markers); 450 next-action tasks; trusted vs untrusted variants change actions in 5.4% of competing cases | the same causal design (vary one provenance factor, hold the rest); its targets are tool and argument choices with textual source markers, not a verifier judging an inherited claim against an external approval record |
+| *Trust Propagation and Structural Containment in Multi-agent LLM Pipelines* (Safin et al., arXiv:2609.17648, IEEE CARS 2026) | a LangGraph Supervisor-Researcher-Validator-Executor pipeline; a compromised low-privilege agent; Judgment Bypass Rate; structural authorization contains the compromise even when the LLM's judgment fails | the threat model (forged approval upstream) and the architecture; per the review its policy check is a separate deterministic layer, not evidence given to the LLM validator |
+| *Who Speaks, Who Authorizes, Who Acts?* (2026), *MasDrift*, *AuthGraph*, *Signed but Not Safe*, *Verification Trap*, *Policy Compiler for Secure Agentic Systems*, *Authorization Propagation in A2A* | per the review: trust boundaries and deterministic gates, provenance graphs, source re-anchoring | not yet checked |
+
+Consequence for the claims this study can make: neither "independent authorization checks matter" nor
+"untrusted information can move LLM decisions" is new. What remains to be shown is narrower: with the
+policy, the approval record and the call held fixed, whether an inherited claim changes the decision of a
+verifier that decides correctly from the evidence alone (Amendment 1 of the pre-registration), and under
+which evidence conditions.
+
 ## Availability of *Silence Is Endorsement*'s materials (checked 2026-11-16)
 
 The repository `yibo-hu-lab/verification-status-laundering` is public, MIT-licensed, and holds only
