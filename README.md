@@ -65,6 +65,9 @@ tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and 
 | [`dataset/`](dataset/README.md) | the Hearsay pilot dataset: lineage, selection of all 286 tasks, policy, approval states, labels |
 | `src/hearsay/authbench/verifier_only.py`, `evaluate.py` | Experiment A: probe calls × with/without the claim × approval states × methods; scoring against the labels |
 | `configs/experiment_a.json`, `experiments/run_verifier_only.py` | Experiment A's pinned settings (model, sampling, votes, prompt fingerprints) and its runner |
+| [`docs/EXPERIMENT1_DESIGN.md`](docs/EXPERIMENT1_DESIGN.md), [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md) | the next experiment (evidence states, Claim Non-Amplification) and how it differs from prior work |
+| `experiments/prescreen_tasks.py`, `docs/screening/` | mechanical pre-screen of all 286 tasks by action type and seed |
+| `experiments/summary_probes.py`, `dataset/authoring/summary_probes/` | researcher-written summary probes: templates, minimal-pair check, blind two-reviewer agreement |
 | `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
 
 ```bash

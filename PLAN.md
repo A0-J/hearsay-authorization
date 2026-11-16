@@ -308,3 +308,34 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
   data modification). Replication on the same inputs is not generalization (the lesson of the MobiSec
   feedback on its 640 cases). Experiment A runs no agent, so it does not need the workspace container:
   the 276 tasks that mount it are open to it once reviewed.
+
+### 2026-11-16 — after the pilot: toward Experiment 1 (evidence states), prior work, feasibility
+
+- Decisions recorded: the 20-repeat run is on hold; the transcript probes and run 1 stay unchanged; the
+  run registry is merged into main (a3c3437, metadata and hashes only).
+- **Summary probes**: written by a researcher, not a model. Templates with the source transcript are in
+  `dataset/authoring/summary_probes/` (empty until written); `experiments/summary_probes.py` checks that
+  each pair differs only by the added paragraph, makes blind sheets for two reviewers and computes
+  their agreement (Cohen's kappa) and agreement with the intended labels. No API calls; reported apart.
+- **Prior work** (`docs/RELATED_WORK.md`): *Silence Is Endorsement* (arXiv:2609.20211) already shows that
+  unverified claims raise monitor approval without any evidence channel, and that instruction fixes are
+  unreliable across models. This study differs by giving the verifier independent evidence (π, σ) and
+  varying the state of that evidence. The question becomes when claims are promoted although the
+  evidence exists (Claim Non-Amplification).
+- **Experiment 1 design draft** (`docs/EXPERIMENT1_DESIGN.md`):
+  - factors: claim form; evidence state (valid, silent or explicit absence, explicit invalidity,
+    mismatch, unavailable, partial); transmission; instruction; model;
+  - a pre-specified block matrix;
+  - primary hypotheses H1 gap filling, H2 explicit absence, H3 incomplete evidence;
+  - selection criteria fixed before data, with the seed as the unit of independence.
+- **Analysis added**: CNA violations and amplifications per approval state and task type; claim effects
+  per condition. On run 1 (exploratory, the condition singled out after seeing the data), evidence-aware
+  in fabricated approves 45% with the claim and 0% without (task-cluster 95% interval [8, 90] points).
+  The effect is 62.5 points in the meeting tasks and 0 in the payment task; evidence-explicit is 0.
+- **Feasibility** (`experiments/prescreen_tasks.py`, mechanical, nothing reviewed):
+  - the 286 tasks come from 42 seeds;
+  - seeds with tools of a type: payment 13, external transfer 20, data modification 9;
+  - AuthorizationBench alone likely gives 15–25 eligible seeds, so 30–40 independent sources need a
+    second source.
+- **The 8–12 new-task review is paused** at the pre-screen until the design and the second-source decision
+  are confirmed, so that task selection precedes any result.
