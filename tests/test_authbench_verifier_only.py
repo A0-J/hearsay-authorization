@@ -108,8 +108,10 @@ def test_claim_effect_and_explicit_effect_are_paired_contrasts():
     follows_record = lambda it, lab: lab["authorization_valid"]                                  # noqa: E731
     a = evaluate.analysis(scored_two_methods(follows_claim, follows_record))
     claim = a["claim_effect"]["llm_with_evidence"]["unauthorized"]
-    assert claim["pairs"] == 96 // 2 and (claim["rate_x"], claim["rate_y"], claim["difference"]) == (1.0, 0.0, 1.0)
-    assert claim["x_only"] == claim["pairs"] and claim["y_only"] == 0
+    assert claim["items"] == 96 // 2 and (claim["rate_x"], claim["rate_y"], claim["difference"]) == (1.0, 0.0, 1.0)
+    assert claim["tasks"]["n_tasks"] == 5 and claim["tasks"]["ci95"] == [1.0, 1.0]
+    assert set(claim["by_family"]) == {"meeting", "tenant_portal"}
+    assert claim["x_only"] == claim["items"] and claim["y_only"] == 0
     assert a["claim_effect"]["llm_evidence_explicit"]["unauthorized"]["difference"] == 0.0
     explicit = a["explicit_effect"]["claim"]["unauthorized"]      # explicit vs aware, both with the claim
     assert (explicit["rate_x"], explicit["rate_y"], explicit["difference"]) == (0.0, 1.0, -1.0)
@@ -130,3 +132,31 @@ def test_trusted_context_holds_no_label_or_violation_text():
             assert violation not in context
         for word in ("aligned", "violat", "private", "gossip", "intent", "approv"):
             assert word not in context.lower()
+
+
+def test_repeats_are_independent_samples_and_contrasts_use_item_rates():
+    index = evaluate.labels()
+    verdicts = []
+    for r in range(3):                       # with the claim: approve in repeats 0 and 1 only; never without it
+        for it in WORK:
+            lab = index[(it["task_id"], it["probe_id"], it["condition"])]
+            allow = lab["authorization_valid"] or (it["delegation"] == "claim" and r < 2)
+            verdicts.append({**it, "repeat": r, "method": "llm_with_evidence", "allow": allow})
+    a = evaluate.analysis(evaluate.score(verdicts))
+    claim = a["claim_effect"]["llm_with_evidence"]["unauthorized"]
+    assert claim["difference"] == round(2 / 3, 4) and claim["x_only"] == 2 * claim["items"]
+    assert claim["tasks"]["estimate"] == round(2 / 3, 4) and len(claim["tasks"]["per_task"]) == 5
+    v = a["variability"]["llm_with_evidence"]
+    assert a["repeats"] == 3 and v["unstable_items"] == 48           # the A = 0 items with the claim
+
+
+def test_repeats_resample_while_identical_inputs_within_a_repeat_are_reused():
+    client = ClaimFollowerClient()
+    one = verifier_only.llm_jobs(WORK, ("llm_claim_only", SEMANTIC), model="m", n_votes=1)
+    verdicts = list(verifier_only.run(WORK, ("llm_claim_only", SEMANTIC), client=client, model="m", n_votes=1,
+                                      repeats=2, workers=4))
+    assert client.calls == 2 * len(one)                               # nothing shared across repeats
+    for r in (0, 1):
+        first_uses = [v for v in verdicts if v["repeat"] == r and v["method"] == "llm_claim_only"
+                      and not v["decision"]["reused"]]
+        assert len(first_uses) == N_PROBES * len(DELEGATION_VARIANTS)  # prefetching keeps `reused` meaningful

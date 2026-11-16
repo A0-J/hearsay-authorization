@@ -66,13 +66,51 @@ def semantic_vote(client: Any, model: str, instructions: str, input_text: str, n
     return {"approve": outcome == "aligned", "outcome": outcome, "counts": counts, "n": n, "votes": votes}
 
 
-def _cached(cache: dict | None, key: tuple, compute) -> dict[str, Any]:
+class DecisionCache:
+    """Decisions per LLM input. Entries can be computed ahead (in parallel) and are marked reused from their
+    second use on, so `reused` means the same as without prefetching."""
+
+    def __init__(self) -> None:
+        self.store: dict[tuple, dict[str, Any]] = {}
+        self.used: set[tuple] = set()
+
+    def __contains__(self, key: tuple) -> bool:
+        return key in self.store
+
+
+def _cached(cache: dict | DecisionCache | None, key: tuple, compute) -> dict[str, Any]:
+    if isinstance(cache, DecisionCache):
+        if key not in cache.store:
+            cache.store[key] = {**compute(), "input_sha256": key[-1]}
+        reused = key in cache.used
+        cache.used.add(key)
+        return {**cache.store[key], "reused": reused}
     if cache is not None and key in cache:
         return {**cache[key], "reused": True}
     out = {**compute(), "input_sha256": key[-1], "reused": False}
     if cache is not None:
         cache[key] = out
     return out
+
+
+def llm_request(method: str, call: ToolCall, delegation: str, registry: ApprovalRegistry, *, model: str,
+                n_votes: int, request: str | None, trusted_context: str | None) -> tuple[tuple, str, str] | None:
+    """(cache key, instructions, input text) of the LLM judgement a method needs, or None (none, gate)."""
+    if method in LLM_KIND:
+        kind = LLM_KIND[method]
+        instructions, text = VERIFIER_INSTRUCTIONS[kind], verifier_input(call, delegation, registry, kind)
+        return ("vote", model, n_votes, input_sha256(instructions, text)), instructions, text
+    if method == SEMANTIC:
+        if request is None:
+            raise ValueError(f"{SEMANTIC} needs the principal's request")
+        text = semantic_input(call, request, trusted_context)
+        return ("semantic", model, n_votes, input_sha256(SEMANTIC_INSTRUCTIONS, text)), SEMANTIC_INSTRUCTIONS, text
+    return None
+
+
+def compute_request(client: Any, model: str, key: tuple, instructions: str, text: str, n_votes: int) -> dict:
+    vote = semantic_vote if key[0] == "semantic" else majority_vote
+    return vote(client, model, instructions, text, n_votes)
 
 
 def judge(method: str, call: ToolCall, delegation: str, registry: ApprovalRegistry, *, client: Any, model: str,
@@ -83,18 +121,15 @@ def judge(method: str, call: ToolCall, delegation: str, registry: ApprovalRegist
     if method == "provenance_gate":
         v = registry.check(call)
         return {"method": method, "allow": v.allowed, "reason": v.reason, "approval_id": v.approval_id}
+    req = llm_request(method, call, delegation, registry, model=model, n_votes=n_votes, request=request,
+                      trusted_context=trusted_context)
     if method in LLM_KIND:
-        kind = LLM_KIND[method]
-        instructions, text = VERIFIER_INSTRUCTIONS[kind], verifier_input(call, delegation, registry, kind)
-        out = _cached(cache, ("vote", model, n_votes, input_sha256(instructions, text)),
-                      lambda: majority_vote(client, model, instructions, text, n_votes))
+        key, instructions, text = req
+        out = _cached(cache, key, lambda: compute_request(client, model, key, instructions, text, n_votes))
         return {"method": method, "allow": out["approve"], "model": model, "sampling": sampling_for(model), **out}
     if method == SEMANTIC:
-        if request is None:
-            raise ValueError(f"{SEMANTIC} needs the principal's request")
-        text = semantic_input(call, request, trusted_context)
-        semantic = _cached(cache, ("semantic", model, n_votes, input_sha256(SEMANTIC_INSTRUCTIONS, text)),
-                           lambda: semantic_vote(client, model, SEMANTIC_INSTRUCTIONS, text, n_votes))
+        key, instructions, text = req
+        semantic = _cached(cache, key, lambda: compute_request(client, model, key, instructions, text, n_votes))
         gate = registry.check(call)
         return {"method": method, "allow": semantic["approve"] and gate.allowed, "model": model,
                 "sampling": sampling_for(model), "semantic": semantic, "provenance": gate.to_dict()}
