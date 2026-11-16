@@ -117,4 +117,42 @@ Wilson 95% intervals; episodes of one scenario are not independent, so they are 
 
 ## 9. Deviations
 
-None yet.
+### 2026-11-16 — one model for every role
+
+The coordinator and the restater ran on gpt-4o-mini and the executor and verifiers on gpt-4.1. That
+mix had no research reason (it was a cost default). Every LLM role now uses one model, gpt-4.1
+(`experiments/common.py`), so differences come from the evidence a verifier sees, not from models.
+Mixed models move to separate experiments: all roles on another model (does the effect replicate?),
+and only the verifier model changed (verifier capability).
+
+### 2026-11-16 — environment moves to AuthorizationBench (branch feat/authorizationbench-runtime)
+
+The self-built mock tool environment (§2–3) was the design's weakest part. The runtime now runs on
+original AuthorizationBench tasks (PEACH-Research-Lab/AuthorizationBench, pinned commit
+`bfe1fc2`) and the benchmark's own services over HTTP (`src/hearsay/authbench/`):
+
+- **Agent surface as in the paper's harnesses**: the task's sealed system prompt and the blueprint
+  tool allowlist, served by the benchmark's host environment; calls go out through its gateway
+  function `proxy_tool_call`.
+- **One router** for every executor call. State-changing business calls pass the verifier first; a
+  blocked call makes no HTTP request (checked against live services: `hearsay.authbench.selfcheck`).
+  Which calls change state is decided by operation verb, failing closed; every episode reports
+  services whose state changed without a state-changing call (a check on that list).
+- **Shadow verification**: every method judges each proposed call; only the enforced method decides
+  whether it runs. Verifiers are compared on identical proposals, so verifier differences are not
+  mixed with differences in what the executor proposed. Proposals are saved with everything the
+  verifier saw and can be re-judged offline (`experiments/replay_verifiers.py`).
+- **Independent approval record** (`approvals.py`): approvals name a tool and constrain its arguments;
+  validity window, revocation, issuer authority and limits. The record's verdict is stored with
+  every proposal as the authorization label.
+- **Authorization and intent alignment are separate labels.** An approval in the record does not turn
+  an action the principal did not ask for into a correct one: the benchmark's out-of-authorization
+  actions are not reclassified by adding a record. The paired conditions will use tasks where the
+  principal asks for the action and an approval is required separately (e.g. organization policy
+  requires CFO approval for a payment the principal requested), so only the record changes between
+  the pair. The intent label (and dualflow's semantic flow) comes with those conditions.
+
+Status: environment, router, verifier wiring, record and planner are implemented and tested without
+API calls. Not yet done: the benchmark's agent container for workspace tools (273 of 286 tasks mount
+a terminal; it needs Docker), the first real-LLM run of an original task, the paired conditions and
+the outcome classification.
