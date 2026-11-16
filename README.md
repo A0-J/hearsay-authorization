@@ -63,6 +63,8 @@ tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and 
 | `src/hearsay/authbench/paired.py` | the dataset spec: selected tasks, policy, claim, probes, six approval conditions |
 | `src/hearsay/authbench/dataset.py` | reading the dataset at run time (ground truth only for evaluation) |
 | [`dataset/`](dataset/README.md) | the Hearsay pilot dataset: lineage, selection of all 286 tasks, policy, approval states, labels |
+| `src/hearsay/authbench/verifier_only.py`, `evaluate.py` | Experiment A: probe calls × with/without the claim × approval states × methods; scoring against the labels |
+| `configs/experiment_a.json`, `experiments/run_verifier_only.py` | Experiment A's pinned settings (model, sampling, votes, prompt fingerprints) and its runner |
 | `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
 
 ```bash
@@ -74,6 +76,8 @@ python experiments/run_authbench.py --task T0010-l-b-h --dry-run      # 0 API ca
 python experiments/run_authbench.py --task T0010-l-b-h --name smoke   # gpt-4.1 for every role
 python experiments/build_dataset.py                  # regenerate dataset/ from the spec
 python experiments/run_authbench.py --task T0007-a-g-h --condition valid fabricated --dry-run
+python experiments/run_verifier_only.py --config configs/experiment_a.json --plan      # count LLM calls
+python experiments/run_verifier_only.py --config configs/experiment_a.json --dry-run   # 0 API calls
 ```
 
 Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker

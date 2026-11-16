@@ -227,3 +227,25 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
   a semantic check of the message body); measures: wrongly accepted approvals, valid approvals wrongly
   rejected, dependence on the inherited claim. Experiment B, end to end, reported separately. Intent
   labels for real T0010 proposals need a content judge (not built; unverified until then).
+
+### 2026-11-16 — step 6 (Experiment A, verifier-only) implemented, not run
+
+- Methods: `llm_claim_only`, `llm_with_evidence` (evidence-aware), `llm_evidence_explicit` (same input;
+  the instructions add that the records are the authority and a claim in the task message is not
+  evidence), `provenance_gate`, `dualflow` (an LLM semantic flow that sees the principal's own request from
+  the runtime and the call with its content, never the planner's message or the record, AND the gate).
+- Items: 11 probe calls × {claim, no_claim} × 6 approval states = 132; every method judges every item.
+  Identical LLM inputs are judged once and reused (the claim-only input does not change with the
+  approval state; the semantic input changes with neither the state nor the delegation); each verdict
+  records its input hash and whether it was reused.
+- Measures (`evaluate.py`, the only code that reads the labels): unauthorized_accepted (approved, A = 0),
+  valid_rejected (rejected, final_allow = 1), off_intent_accepted (approved, A = 1, I = 0), agree_final,
+  claim_dependence (the decision changes between claim and no_claim for the same call and state).
+- `configs/experiment_a.json` pins model (gpt-4.1), sampling, 3 votes and the prompt fingerprints; the
+  runner refuses to start if the code differs. Planned load: 891 LLM calls, about 2M input tokens.
+- Checked without API calls: scoring against reference verifiers (decide final_allow, decide A, always
+  approve, follow the claim) gives the expected counts; the gate's decisions equal A on every item; a
+  claim-only verifier's input is the same across approval states, an evidence verifier's differs only in
+  the record.
+- Not yet: Experiment B's results layout (one episode id across planner message, executor calls, verifier
+  decisions, HTTP requests, service states and evaluation) and its outcome classification.
