@@ -100,3 +100,60 @@ def test_bad_records_are_rejected():
     with pytest.raises(ValueError):
         ApprovalRegistry.from_dict({"today": "2026-01-01", "approvals": [
             {"approval_id": "X", "issuer": "a", "tool": TOOL}, {"approval_id": "X", "issuer": "a", "tool": TOOL}]})
+
+
+# --- subset constraints, context paths, the runtime policy --------------------------------------------------
+
+def _mail_registry(**extra):
+    return ApprovalRegistry.from_dict({
+        "today": "2026-04-29", "roles": {"lead": "Lead"}, "authority": {"lead": ["email_client.send_message"]},
+        "approvals": [{"approval_id": "A-1", "issuer": "lead", "tool": "email_client.send_message",
+                       "constraints": {"to": {"subset": ["team@x.org", "a@x.org"]},
+                                       "cc": {"subset": ["team@x.org", "a@x.org"]}}}], **extra})
+
+
+def test_subset_covers_lists_scalars_and_missing():
+    r = _mail_registry()
+    send = lambda **a: ToolCall("email_client.send_message", a)   # noqa: E731
+    assert r.check(send(to=["Team@x.org ", "a@x.org"])).allowed
+    assert r.check(send(to="team@x.org")).allowed                  # a scalar is a one-element list
+    assert r.check(send(to=["team@x.org"])).allowed                # cc missing = no cc
+    assert r.check(send(to=["team@x.org", "out@y.com"])).reason == "out_of_scope"
+    assert r.check(send(to=["team@x.org"], cc=["out@y.com"])).reason == "out_of_scope"
+    assert r.check(send(to=[["team@x.org"]])).reason == "out_of_scope"   # non-scalar elements fail closed
+
+
+def test_context_paths_and_missing_context_fail_closed():
+    r = ApprovalRegistry.from_dict({
+        "today": "2026-04-01", "roles": {"holder": "Cardholder"}, "authority": {"holder": ["portal.pay"]},
+        "approvals": [{"approval_id": "M-1", "issuer": "holder", "tool": "portal.pay",
+                       "constraints": {"context.billed_to": {"subset": ["me"]}, "context.total": {"max": 100}}}]})
+    pay = lambda **ctx: ToolCall("portal.pay", {}, ctx)   # noqa: E731
+    assert r.check(pay(billed_to=["me"], total=70.5)).allowed
+    assert r.check(pay(billed_to=["me", "roommate"], total=70.5)).reason == "out_of_scope"
+    assert r.check(pay(billed_to=["me"], total=170)).reason == "exceeds_limit"
+    assert r.check(pay(total=70.5)).reason == "out_of_scope"            # context not resolved
+    assert r.check(ToolCall("portal.pay", {"billed_to": ["me"], "total": 1})).reason == "out_of_scope"  # args are not context
+    assert ToolCall("portal.pay", {}, {"total": 1}).to_dict()["context"] == {"total": 1}
+    assert "context" not in ToolCall("portal.pay", {}).to_dict()
+
+
+def test_tool_policy_levels_and_fail_closed_default():
+    r = _mail_registry(tool_policy={"email_client.send_message": "required", "email_client.archive": "not_required",
+                                    "email_client.purge": "blocked"}, policy_text="Mail needs the lead.")
+    assert r.check(ToolCall("email_client.archive", {})).reason == "not_required"
+    assert r.check(ToolCall("email_client.purge", {})).reason == "blocked_by_policy"
+    assert r.check(ToolCall("email_client.forward", {})).reason == "no_approval"         # unlisted: needs one
+    assert r.check(ToolCall("email_client.send_message", {"to": ["out@y.com"]})).reason == "out_of_scope"
+    assert not _mail_registry().check(ToolCall("email_client.archive", {})).allowed     # no policy: all need one
+    assert ApprovalRegistry.from_dict(r.to_dict()) == r
+    with pytest.raises(ValueError):
+        _mail_registry(tool_policy={"email_client.archive": "maybe"})
+
+
+def test_policy_and_approval_state_render_separately():
+    r = _mail_registry(tool_policy={"email_client.send_message": "required"}, policy_text="Mail needs the lead.")
+    policy, state = r.render_policy(), r.render_approvals()
+    assert "2026-04-29" in policy and "Mail needs the lead." in policy and "Lead (lead)" in policy
+    assert "A-1" not in policy and "A-1" in state
+    assert r.render() == policy + "\n\n" + state

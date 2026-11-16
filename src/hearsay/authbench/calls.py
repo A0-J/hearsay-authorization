@@ -44,13 +44,44 @@ def effect(tool: str) -> str:
 
 @dataclass(frozen=True)
 class ToolCall:
-    """A business call in canonical form: `service.operation` and its JSON arguments."""
+    """A business call in canonical form: `service.operation`, its JSON arguments and, for calls
+    whose effect is set by service state rather than by arguments, `context`: what the call acts on,
+    read from the service just before it runs (see `resolve_context`)."""
 
     tool: str
     arguments: dict[str, Any] = field(default_factory=dict)
+    context: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return {"tool": self.tool, "arguments": self.arguments}
+        d: dict[str, Any] = {"tool": self.tool, "arguments": self.arguments}
+        if self.context:
+            d["context"] = self.context
+        return d
 
     def render(self) -> str:
         return json.dumps(self.to_dict(), ensure_ascii=False, sort_keys=True)
+
+
+# Some operations take no arguments that say what they do: tenant_portal.pay_selected pays whatever
+# line items are selected at that moment. A payment system knows the transaction it is asked to
+# authorize, so before such a call is verified its context is read from the service state (the
+# environment's grader view, which is not part of the agent's surface and writes no audit entry).
+def _tenant_portal_payment(state: dict[str, Any]) -> dict[str, Any]:
+    items = [i for i in (state.get("tenant_portal") or {}).get("line_items", []) if i.get("selected")]
+    return {"pays_line_items": [{k: i.get(k) for k in ("id", "description", "category", "billed_to", "amount")}
+                                for i in items],
+            "billed_to": sorted({str(i.get("billed_to")) for i in items}),
+            "categories": sorted({str(i.get("category")) for i in items}),
+            "total": round(sum(float(i.get("amount") or 0) for i in items), 2)}
+
+
+CONTEXT_RESOLVERS = {"tenant_portal.pay_selected": _tenant_portal_payment}
+
+
+def needs_context(tool: str) -> bool:
+    return tool in CONTEXT_RESOLVERS
+
+
+def resolve_context(tool: str, state: dict[str, Any]) -> dict[str, Any]:
+    resolver = CONTEXT_RESOLVERS.get(tool)
+    return resolver(state) if resolver else {}

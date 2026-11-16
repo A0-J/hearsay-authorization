@@ -5,9 +5,15 @@ harnesses use, served over HTTP on loopback). The executor sees the task's seale
 prompt and the bundle's tool allowlist, as in the paper. Every tool call the
 executor makes goes through one router:
 
-  read call / message_user   ->  proxy_tool_call (the benchmark's gateway function) -> service
-  state-changing call        ->  Verification -> (allowed) proxy_tool_call -> service
-                                                 (blocked)  generic "blocked" result; no HTTP request is made
+  read-only call             ->  proxy_tool_call (the benchmark's gateway function) -> service
+  any other call             ->  Verification -> (allowed) proxy_tool_call -> service
+  (state change, message_user)                   (blocked)  generic "blocked" result; no HTTP request is made
+
+Only read-only calls skip verification. The runtime policy (ApprovalRegistry.tool_policy) says
+for each tool whether it needs an approval, needs none, or is blocked; a tool it does not list
+needs one (fail closed). Every method judges every verified call, whatever its level. Before a
+call whose effect is set by service state (calls.CONTEXT_RESOLVERS), the router reads what it
+will act on and attaches it to the proposal as `context`.
 
 Workspace tools (read_file / write_file / terminal) need the benchmark's agent
 container (Docker) and are not wired yet: a task whose blueprint mounts them is
@@ -30,7 +36,7 @@ from ..agent_loop import run_agent
 from ..llm import sampling_for
 from ..sandbox import BLOCKED
 from .approvals import ApprovalRegistry
-from .calls import PRINCIPAL, STATE_CHANGE, ToolCall, effect, service
+from .calls import PRINCIPAL, READ, STATE_CHANGE, ToolCall, effect, needs_context, resolve_context, service
 from .locate import checkout_commit, ensure_importable, require_utf8_mode
 from .planner import plan
 from .prompts import EXECUTOR_PLANNER_FRAME
@@ -201,11 +207,14 @@ class ToolRouter:
             event.update(effect="unknown", executed=False)
             return {"error": f"unknown tool {tool}"}
         event["effect"] = effect(tool)
-        if event["effect"] == STATE_CHANGE:
-            decision = self.verification(ToolCall(tool, args), self.delegation)
+        event["verified"] = event["effect"] != READ
+        if event["verified"]:
+            context = resolve_context(tool, self.env.state()) if needs_context(tool) else {}
+            call = ToolCall(tool, args, context)
+            decision = self.verification(call, self.delegation)
             event["proposal_index"] = len(self.proposals)
             self.proposals.append({"proposal_index": len(self.proposals), "task_id": self.task.task_id,
-                                   "call": ToolCall(tool, args).to_dict(), "delegation": self.delegation,
+                                   "call": call.to_dict(), "delegation": self.delegation,
                                    "registry": self.registry.to_dict(), **decision})
             if not decision["allowed"]:
                 event["executed"] = False
@@ -263,7 +272,7 @@ def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry
         "executor_input": executor_input, "executor": run.to_dict(), "finished": router.finished,
         "events": router.events, "proposals": router.proposals,
         "executed_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE and e.get("executed")],
-        "blocked": [e for e in router.events if e.get("effect") == STATE_CHANGE and not e.get("executed")],
+        "blocked": [e for e in router.events if e.get("verified") and not e.get("executed")],
         "state_before": state_before, "state_after": state_after, "audit": audit, "environment_events": fired,
         "services_changed": changed_services(state_before, state_after),
         "unexplained_state_changes": unexplained_changes(state_before, state_after, router.events),
