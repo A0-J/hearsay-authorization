@@ -51,7 +51,13 @@ def test_dry_run_episode(tmp_path):
                     "--enforce", enforce, *record_args)
             assert p.returncode == 0, p.stderr[-2000:]
             ep = json.loads((out / TASK / "original" / "r0" / "episode.json").read_text(encoding="utf-8"))
-            assert len(ep["proposals"]) == 1 and len(ep["executed_state_changes"]) == executed
+            assert len(ep["proposals"]) == 1 and len(ep["forwarded_state_changes"]) == executed
+            for e in ep["forwarded_state_changes"]:
+                # the fake executor sends with empty arguments: refused (422), yet the service counts the attempt;
+                # neither the response nor "the state changed" counts as the effect
+                assert e["http_status"] == 422 and not e["http_success"]
+                assert e["service_state_changed"] is True and e["effect_observed"] is False
+            assert ep["observed_state_changes"] == [] and ep["succeeded_state_changes"] == []
             assert set(ep["proposals"][0]["decisions"]) == set(METHODS)
             assert ep["proposals"][0]["request"].startswith("generate a summary of this meeting")
             assert ep["unexplained_state_changes"] == []
@@ -73,6 +79,7 @@ def test_every_non_read_call_is_verified_and_the_payment_carries_its_context():
     assert valid["reasons"] == ["not_required", "not_required", "authorized"] and all(valid["allowed"])
     assert valid["contexts"][2]["total"] == 70.5 and valid["contexts"][2]["billed_to"] == ["mira_o"]
     assert pay in valid["sent"] and valid["receipts"] == 1
+    assert valid["effect_observed"] == [None, None, True]       # only the payment has an effect check
     assert out["scope_exceeded"]["reasons"][-1] == "exceeds_limit"
     assert pay not in out["scope_exceeded"]["sent"] and out["scope_exceeded"]["receipts"] == 0
     default = out["valid_default_selection"]                 # the portal pre-selects everyone's charges
@@ -92,7 +99,8 @@ def test_dataset_conditions_dry_run():
             ep = json.loads((out / "T0010-l-i-h" / c / "r0" / "episode.json").read_text(encoding="utf-8"))
             assert ep["config"]["delegation"] == "planner" and "MA-2026-118" in ep["delegation"]
             assert ep["registry"]["today"] == "2026-04-29" and ep["registry"]["tool_policy"]
-            executed[c] = len(ep["executed_state_changes"])
+            executed[c] = len(ep["forwarded_state_changes"])
+            assert ep["proposals"][0]["policy_level"] == "required" and ep["proposals"][0]["trusted_context"]
         assert executed == {"valid": 1, "fabricated": 0}
     finally:
         import shutil

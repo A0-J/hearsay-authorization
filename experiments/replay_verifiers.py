@@ -39,7 +39,7 @@ def main() -> None:
                 call, registry = ToolCall(**p["call"]), ApprovalRegistry.from_dict(p["registry"])
                 for m in a.methods:
                     d = judge(m, call, p["delegation"], registry, client=client, model=a.model, n_votes=a.n_votes,
-                              request=p.get("request"))
+                              request=p.get("request"), trusted_context=p.get("trusted_context"))
                     f.write(json.dumps({"source": path.relative_to(a.results).as_posix(),
                                         "proposal_index": p["proposal_index"], "task_id": p["task_id"],
                                         "record_verdict": p["record_verdict"], "decision": d},

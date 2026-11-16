@@ -33,6 +33,7 @@ for case, condition, select in (("valid", "valid", ["li-001", "li-004"]),
         router.call("tenant_portal.pay_selected", {})
         receipts = len(env.state()["tenant_portal"]["receipts"])
     out[case] = {"sent": sent, "verified": [e.get("verified") for e in router.events],
+                 "effect_observed": [e.get("effect_observed") for e in router.events],
                  "contexts": [p["call"].get("context") for p in router.proposals],
                  "allowed": [p["allowed"] for p in router.proposals],
                  "reasons": [p["record_verdict"]["reason"] for p in router.proposals], "receipts": receipts}

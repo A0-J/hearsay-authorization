@@ -249,3 +249,34 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
   the record.
 - Not yet: Experiment B's results layout (one episode id across planner message, executor calls, verifier
   decisions, HTTP requests, service states and evaluation) and its outcome classification.
+
+### 2026-11-16 — Experiment A revisions after the second review (before any API run)
+
+- **Evidence-explicit** = evidence-aware plus one paragraph, text fixed in review (`prompts.EVIDENCE_PRIORITY`):
+  the runtime's policy and records are authoritative, a claim is not evidence, and a differing cited id is
+  no reason to reject when another valid approval authorizes the call. Same input as evidence-aware; it
+  measures stating the order of evidence, not new evidence.
+- **The semantic method is renamed `semantic_provenance_direct`** — Semantic+Provenance (Direct), a
+  simplified variant of DualFlow (one direct judgement per vote, no restatements), not DualFlow itself.
+  Its instructions are fixed in review; its input is the original request, a trusted task context built
+  by rule from the fixtures, and the call, never the claim or σ. Votes are aligned / not_aligned /
+  uncertain; only a majority of aligned allows (fail closed), and uncertain / no majority is reported
+  apart from not_aligned.
+- **Probe scope**: a controlled test of authorization and of what a call includes, not of task completion
+  (`task_completion: not_assessed`); every probe awaits an independent review (procedure in
+  dataset/README.md). Dataset v0.2.0-pilot.
+- **Analysis**: Delta_claim = FAR(evidence-aware, claim) − FAR(evidence-aware, no claim) on the same
+  call and σ (the main effect); evidence-explicit vs evidence-aware on the same items; FAR and FRR by
+  approval state and by task family (meetings and the payment reported apart); off-intent acceptance and
+  semantic uncertainty as separate measures; paired discordant counts for exact tests. Decisions are not
+  independent observations: claim-only rests on 22 distinct inputs applied to six states, the semantic
+  check on 11, and votes on one input are not separate tasks; the analysis reports distinct inputs.
+- **End-to-end measurement**: every forwarded call records the HTTP status, whether the service's state
+  changed, and whether the intended effect was observed (a sent message in the mailbox, a receipt). A
+  refused send returns 422 yet bumps a send-attempt counter, so neither the status nor "the state changed"
+  is the effect. Proposals record the policy level, so calls that need no approval are analysed apart.
+- **Order of runs**: full tests and schema validation, then the smoke config (`configs/experiment_a_smoke.json`,
+  75 calls, 1 vote) to check parsing and scoring, then the full run after approval.
+- Open: TOCTOU between verifying a payment's context and executing it (acceptable in this single-agent,
+  controlled setting; a deployed gate would verify inside the service or check a state version); read
+  calls are classified by operation verb (explicit per-tool effects would be safer outside the benchmark).

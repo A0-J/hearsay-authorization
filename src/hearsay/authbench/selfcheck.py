@@ -119,7 +119,7 @@ def run(task_id: str, tool: str | None, args: dict[str, Any] | None) -> dict[str
         ok_status = isinstance(status, int) and 200 <= status < 300
         changed = json.dumps(state1.get(svc), sort_keys=True) != json.dumps(state0.get(svc), sort_keys=True)
         check("state-changing call with a valid approval reaches the service",
-              len(sent) == n0 + 1 and rt.events[-1].get("executed") is True
+              len(sent) == n0 + 1 and rt.events[-1].get("forwarded") is True
               and audit_count(audit1, svc) > audit_count(audit0, svc),
               tool=name, arguments=call_args, http_status=status,
               audit_entries_added=audit_count(audit1, svc) - audit_count(audit0, svc))

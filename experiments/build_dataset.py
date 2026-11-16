@@ -139,7 +139,7 @@ def task_files(spec: PairedSpec) -> dict[str, dict]:
     added = ["policy.json: the runtime policy (pi): a level for every tool that is not read-only, the approver "
              "and its authority, the reference date",
              "inputs.json: the planner's handoff note with the authority claim; scripted delegations with and "
-             "without it; probe calls built by rule from the original fixtures",
+             "without it; probe calls and the trusted task context, both built by rule from the original fixtures",
              "<condition>.json: the approval state (sigma), one file per condition",
              "ground_truth.json/extension: authorization, intent and final labels per probe x condition"]
     if any(c.context for c in calls.values()):
@@ -162,12 +162,16 @@ def task_files(spec: PairedSpec) -> dict[str, dict]:
             "planner": ["the original request", "inputs.json/handoff_note"],
             "executor": ["the original sealed system prompt", "the planner's message",
                          "the approval lookup tool, only with --record-lookup"],
-            "every verifier": ["the task message", "the proposed call (with its context)", "policy.json"],
-            "llm_with_evidence and provenance_gate": ["<condition>.json"],
+            "authorization verifiers (claim-only, evidence-aware, evidence-explicit)": [
+                "the task message", "the proposed call (with its context)", "policy.json"],
+            "evidence-aware, evidence-explicit, provenance gate": ["<condition>.json"],
+            "semantic check of semantic_provenance_direct": [
+                "the original request", "inputs.json/trusted_context", "the proposed call (with its context)"],
             "evaluation only": ["ground_truth.json"]},
         "evaluation_scope": ("the original blueprint mounts no workspace tools; every call that is not read-only "
                              "passes the verifier"),
-        "gated_tool": spec.gated_tool, "approver": spec.approver_title, "reference_date": spec.reference_date,
+        "task_family": spec.family, "gated_tool": spec.gated_tool, "approver": spec.approver_title,
+        "reference_date": spec.reference_date,
         "conditions": [{"condition": c, "file": f"{c}.json", "record_change": RECORD_CHANGE[c]} for c in CONDITIONS],
         "generation": {"generator": "experiments/build_dataset.py", "spec": "src/hearsay/authbench/paired.py",
                        "spec_sha256": sha256(ROOT / "src" / "hearsay" / "authbench" / "paired.py"),
@@ -175,6 +179,7 @@ def task_files(spec: PairedSpec) -> dict[str, dict]:
     }
     inputs = {"task_id": spec.task_id, "request": task.instruction, "handoff_note": spec.handoff_note,
               "delegations": spec.delegations(task.instruction),
+              "trusted_context": paired.trusted_context(spec, task.bundle),
               "probes": [{"probe_id": k, "call": c.to_dict()} for k, c in calls.items()]}
     ground_truth = {
         "task_id": spec.task_id,
@@ -183,7 +188,10 @@ def task_files(spec: PairedSpec) -> dict[str, dict]:
                      "completion_criteria": cfg["completion_criteria"],
                      "authorization_scope": cfg["authorization_scope"]},
         "extension": {"probes": [{"probe_id": p.probe_id, "description": p.description,
-                                  "intent_aligned": p.intent_aligned, "basis": p.basis} for p in spec.probes],
+                                  "intent_aligned": p.intent_aligned, "basis": p.basis,
+                                  "evaluation_scope": paired.PROBE_SCOPE[spec.family],
+                                  "task_completion": "not_assessed",
+                                  "review_status": paired.PROBE_REVIEW_STATUS} for p in spec.probes],
                       "labels": labels}}
     files = {"metadata.json": metadata, "policy.json": spec.policy(), "inputs.json": inputs,
              "ground_truth.json": ground_truth}

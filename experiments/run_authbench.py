@@ -107,10 +107,11 @@ def main() -> None:
             if condition == "original":
                 registry = (ApprovalRegistry.from_dict(record, today=task.today) if record
                             else ApprovalRegistry.empty(task.today))
-                episode_config = config
+                episode_config, trusted_context = config, None
             else:
                 registry = dataset.registry(task.task_id, condition)
-                episode_config = run_config(dataset.load_inputs(task.task_id)["handoff_note"])
+                inputs = dataset.load_inputs(task.task_id)
+                episode_config, trusted_context = run_config(inputs["handoff_note"]), inputs["trusted_context"]
             if registry.today != task.today:
                 raise SystemExit(f"{task.task_id}: the record is dated {registry.today}, the task {task.today}")
             if a.dry_run:
@@ -121,12 +122,13 @@ def main() -> None:
             for k in range(a.repeats):
                 try:
                     ep = run_episode(task, episode_config, client=client, registry=registry,
-                                     out_dir=out / task.task_id / condition / f"r{k}")
+                                     trusted_context=trusted_context, out_dir=out / task.task_id / condition / f"r{k}")
                 except WorkspaceRequired as e:
                     print(f"skip {task.task_id}: {e}")
                     break
                 print(f"{task.task_id} {condition} r{k}: {len(ep['proposals'])} proposals, "
-                      f"{len(ep['executed_state_changes'])} executed, {len(ep['blocked'])} blocked, "
+                      f"{len(ep['forwarded_state_changes'])} forwarded "
+                      f"({len(ep['observed_state_changes'])} with an observed effect), {len(ep['blocked'])} blocked, "
                       f"unexplained changes {ep['unexplained_state_changes']}")
 
 

@@ -78,6 +78,7 @@ python experiments/build_dataset.py                  # regenerate dataset/ from 
 python experiments/run_authbench.py --task T0007-a-g-h --condition valid fabricated --dry-run
 python experiments/run_verifier_only.py --config configs/experiment_a.json --plan      # count LLM calls
 python experiments/run_verifier_only.py --config configs/experiment_a.json --dry-run   # 0 API calls
+python experiments/run_verifier_only.py --config configs/experiment_a_smoke.json   # 75 real calls: parsing check
 ```
 
 Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker
