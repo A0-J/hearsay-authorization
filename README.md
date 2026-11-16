@@ -68,6 +68,10 @@ tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and 
 | [`docs/EXPERIMENT1_DESIGN.md`](docs/EXPERIMENT1_DESIGN.md), [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md) | the next experiment (evidence states, Claim Non-Amplification) and how it differs from prior work |
 | `experiments/prescreen_tasks.py`, `docs/screening/` | mechanical pre-screen of all 286 tasks by action type and seed |
 | `experiments/summary_probes.py`, `dataset/authoring/summary_probes/` | researcher-written summary probes: templates, minimal-pair check, blind two-reviewer agreement |
+| [`docs/EXPERIMENT1_PREREG.md`](docs/EXPERIMENT1_PREREG.md), [`dataset/exp1/`](dataset/exp1/README.md) | Experiment 1 run 1: pre-registration and its frozen dataset (11 new source cases, 1,276 cells) |
+| `src/hearsay/authbench/exp1.py`, `exp1_tasks.py` | Experiment 1 cells (claims, evidence conditions, controls) and the selected tasks with the review |
+| `experiments/build_exp1.py`, `run_exp1.py`, `analyze_exp1.py` | build the dataset; run it (resumable, raw replies kept); the pre-registered analysis |
+| `src/hearsay/anthropic_client.py` | Claude models through the same interface (for the replication) |
 | `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
 
 ```bash
@@ -85,6 +89,8 @@ python experiments/run_verifier_only.py --config configs/experiment_a_smoke.json
 python experiments/run_verifier_only.py --config configs/experiment_a_pilot.json   # Experiment A run 1 (891 calls)
 python experiments/score_run.py results/A-pilot-v2      # recompute every report from verdicts.jsonl
 python experiments/archive_run.py results/A-pilot-v2 --label "..."   # zip + SHA-256 into results/registry.json
+python experiments/run_exp1.py --config configs/exp1_gpt41.json --plan   # Experiment 1: 3,828 calls
+python experiments/analyze_exp1.py results/E1-gpt-4.1-run1               # tables, tests, PNG plots, REPORT.md
 ```
 
 Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker
