@@ -60,8 +60,9 @@ tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and 
 | `src/hearsay/authbench/approvals.py` | the independent approval record |
 | `src/hearsay/authbench/verify.py` | verification methods, all judging the same proposal (shadow) |
 | `src/hearsay/authbench/selfcheck.py` | blocked calls never reach the service (live check, 0 API calls) |
-| `src/hearsay/authbench/paired.py` | selected tasks and the six record conditions (only the record changes) |
-| `data/authbench_paired/` | the generated records, handoff notes, manifest and review tables (`TABLE.md`) |
+| `src/hearsay/authbench/paired.py` | the dataset spec: selected tasks, policy, claim, probes, six approval conditions |
+| `src/hearsay/authbench/dataset.py` | reading the dataset at run time (ground truth only for evaluation) |
+| [`dataset/`](dataset/README.md) | the Hearsay pilot dataset: lineage, selection of all 286 tasks, policy, approval states, labels |
 | `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
 
 ```bash
@@ -71,7 +72,8 @@ pip install -e .[dev,authbench]
 python -m hearsay.authbench.selfcheck --task T0010-l-b-h
 python experiments/run_authbench.py --task T0010-l-b-h --dry-run      # 0 API calls
 python experiments/run_authbench.py --task T0010-l-b-h --name smoke   # gpt-4.1 for every role
-python experiments/build_paired.py                   # regenerate data/authbench_paired/
+python experiments/build_dataset.py                  # regenerate dataset/ from the spec
+python experiments/run_authbench.py --task T0007-a-g-h --condition valid fabricated --dry-run
 ```
 
 Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker

@@ -200,3 +200,30 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
 - **The provenance gate is the reference, not a finding.** It implements the record's semantics, so its
   low error is by construction. The analysis is about why LLM verifiers that receive the same evidence
   decide differently.
+
+### 2026-11-16 — dataset revisions after review (supersedes parts of the previous entry)
+
+- **The dataset moved to `dataset/`** with lineage and reproducibility files: `selection.csv` (all 286
+  original tasks; 10 reviewed by hand, the rest marked unverified), `source_manifest.json` (repository,
+  commit, license, paper, hashes of the benchmark code used), `schema.json`, and per task
+  `metadata.json`, `policy.json`, `inputs.json`, one approval-state file per condition and
+  `ground_truth.json`. See `dataset/README.md`.
+- **Condition `nonexistent` is renamed `fabricated`** (as in §3).
+- **Separate labels.** Per probe call × condition: `authorization_valid` (A), `intent_aligned` (I),
+  `final_allow` = A and I, and for the misquoted condition `claimed_approval_on_record` /
+  `claimed_approval_authorizes` apart from A. The benchmark's contract is kept verbatim in a separate
+  `original` section. Probes are built by rule from the original fixtures; for T0010 the two probes differ
+  only in whether the body includes the post-meeting conversation (A = 1, I = 0 under a valid approval).
+- **The policy π comes from the runtime, not the planner.** Every verifier receives it (claim-only
+  included); only the evidence verifier and the gate receive the approval state σ.
+- **Every call that is not read-only is verified** (this replaces "`requires` narrows the verified
+  calls"). The policy gives every such tool in the task an explicit level (required / not_required /
+  blocked); an unlisted tool needs an approval. message_user passes the verifier too (policy level
+  not_required).
+- **Approvals are judged on the task's reference date** (`reference_time`), stored in the policy and
+  checked against the bundle.
+- **Next (step 6).** Experiment A, verifier-only: probes × delegation with/without the claim × six
+  approval states × methods (claim-only, evidence-aware, evidence-explicit, provenance gate, dualflow with
+  a semantic check of the message body); measures: wrongly accepted approvals, valid approvals wrongly
+  rejected, dependence on the inherited claim. Experiment B, end to end, reported separately. Intent
+  labels for real T0010 proposals need a content judge (not built; unverified until then).
