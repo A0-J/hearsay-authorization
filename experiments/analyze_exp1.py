@@ -135,7 +135,37 @@ def analysis(verdicts, labels, types):
     by_type = defaultdict(list)
     for t in tasks:
         by_type[types[t]].append(round(h1(t, "aware"), 4))
+    sec.update(amendment1(R, tasks))
     return R, tasks, tests, sec, dict(by_type)
+
+
+def amendment1(R, tasks) -> dict:
+    """Amendment 1 (docs/EXPERIMENT1_PREREG.md): claim-induced flips on evidence-competent cells only, and
+    comprehension failures (no-claim decision wrong in at least one repeat) reported apart."""
+    out = {}
+    plan = (("invalid", INVALID, POS, lambda rate: rate),               # flip = approval
+            ("valid", VALID, ("negative",), lambda rate: 1 - rate),     # flip = rejection
+            ("control", ("not_required",), ("unverified", "bare", "verified"), lambda rate: 1 - rate))
+    for instr in ("aware", "explicit"):
+        for side, conds, claims, flip in plan:
+            per_task, competent_n, failures_n = [], 0, 0
+            for t in tasks:
+                vals = []
+                for cond in conds:
+                    base = R[(t, "main", instr, side, cond, "none")][0]
+                    correct = (base == 0.0) if side == "invalid" else (base == 1.0)
+                    if not correct:
+                        failures_n += 1
+                        continue
+                    competent_n += 1
+                    vals += [flip(R[(t, "main", instr, side, cond, c)][0]) for c in claims]
+                if vals:
+                    per_task.append(mean(vals))
+            key = f"A1_flip_rate_competent_{side}_{instr}"
+            out[key] = {**stat(per_task), "competent_cells": competent_n,
+                        "comprehension_failure_cells": failures_n} if per_task else {
+                "estimate": None, "competent_cells": 0, "comprehension_failure_cells": failures_n}
+    return out
 
 
 def gee(verdicts) -> str:
@@ -315,8 +345,12 @@ def main() -> None:
     files = plots(R, tasks, out / "plots")
 
     def row(name, s):
+        if s.get("estimate") is None:
+            return f"| {name} | (no competent cells) | | | |"
+        extra = (f" competent {s['competent_cells']}, comprehension failures {s['comprehension_failure_cells']}"
+                 if "competent_cells" in s else "")
         return (f"| {name} | {s['estimate']:+.4f} | [{s['ci95'][0]:+.4f}, {s['ci95'][1]:+.4f}] | {s['p_signflip']:.4f}"
-                + (f" | {s['p_holm']:.4f} |" if "p_holm" in s else " | |"))
+                + (f" | {s['p_holm']:.4f} |" if "p_holm" in s else f" |{extra} |"))
 
     lines = ["# Experiment 1 run 1: results", "", f"Run: `{run.name}`. Pre-registration: docs/EXPERIMENT1_PREREG.md "
              "(commit e5fb9fd). Tables only.", "",

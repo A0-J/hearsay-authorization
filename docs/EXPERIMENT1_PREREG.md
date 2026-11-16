@@ -140,3 +140,23 @@ Secondary:
   fails is reported as missing.
 - Raw replies, inputs, hashes and the config are kept (`results/E1-*`, archived; the registry records
   hashes).
+
+## Amendment 1 (2026-11-16, written while run 1 was still collecting; no result had been inspected)
+
+Separate evidence comprehension from claim influence. The pre-registered contrasts average over all cells,
+including cells where the verifier is already wrong without any claim. One added analysis, reported
+next to the pre-registered ones and labelled as this amendment:
+
+- **Evidence-competent cells.** For each task, instruction, side and condition, a cell is
+  evidence-competent if the decision without a claim was correct in every repeat (reject on the
+  invalid side; approve on the valid side and the control).
+- **Claim-induced flip rate.** On evidence-competent cells:
+  - invalid side: the approval rate under each positive claim;
+  - valid side: the rejection rate under the negative claim;
+  - control: the rejection rate under each claim note.
+  - Per task: the mean over its competent cells. The estimate, interval and p-value are computed as for
+    the pre-registered tests, over tasks that have at least one competent cell.
+- **Comprehension failures.** The share of cells whose no-claim decision was wrong in at least one repeat,
+  per side and condition. Reported as such, not as claim influence.
+
+No condition, item, threshold or pre-registered test changes.

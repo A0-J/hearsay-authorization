@@ -47,6 +47,14 @@ results. This study must not claim them.
 4. **Authorization and intent are separate labels.** The semantic check is supplementary, not the main
    contribution.
 
+## Availability of *Silence Is Endorsement*'s materials (checked 2026-11-16)
+
+The repository `yibo-hu-lab/verification-status-laundering` is public, MIT-licensed, and holds only
+`README.md` and `LICENSE`. The README says the reproduction package will be released on publication and
+is available from the author on request. An external replication on its 56 items is therefore not
+possible from public material now. Appendix A lists the items in prose, which is not the full stimuli.
+Its numbers are not comparable to this study's: its monitors see no independent evidence.
+
 ## Other related lines (from the papers above, not yet read)
 
 Semantic laundering across agent interfaces (Romanchuk & Bondar, arXiv:2601.08333); provenance-based
