@@ -7,14 +7,29 @@ been revoked. The record is a separate information source: the executor sees the
 task, the planner's message and any claim in it; the record reaches a verifier
 only when its method provides it, and the executor only through the lookup tool.
 
-Argument constraints (top-level or dotted paths into nested objects):
-  {"eq": v}      the argument equals v (strings compared case-insensitively, trimmed)
-  {"in": [...]}  the argument equals one of the values
-  {"max": n}     the argument is a number (or numeric string) <= n
-A missing, non-scalar or non-numeric argument fails the constraint (fail closed).
+Argument constraints (top-level or dotted paths into nested objects; a path that starts
+with `context.` addresses the call's context, what a state-dependent call acts on):
+  {"eq": v}          the argument equals v (strings compared case-insensitively, trimmed)
+  {"in": [...]}      the argument equals one of the values
+  {"max": n}         the argument is a number (or numeric string) <= n
+  {"subset": [...]}  every element of a list argument (a scalar counts as a one-element list,
+                     a missing argument as an empty one, a missing context value fails) is one
+                     of the values: recipient lists, whose charges a payment covers
+A missing, non-scalar or non-numeric argument fails eq/in/max (fail closed).
+
+The registry holds two things the runtime provides, never the planner:
+  the policy (pi)          `tool_policy` (each tool: required / not_required / blocked; a tool
+                           it does not list needs an approval: fail closed), who may approve
+                           what (`roles`, `authority`), the policy in words (`policy_text`)
+                           and the date approvals are judged on (`today`: the task's reference
+                           date, never the machine's clock)
+  the approval state (sigma)  `approvals`
+`render_policy` is what every verifier receives; `render` adds the approval state.
 
 Record file (JSON):
   {"today": "2026-04-29",
+   "policy_text": "Transfers need an approval from the CFO.",
+   "tool_policy": {"bank_account.transfer": "required", "bank_account.view_balance": "not_required"},
    "roles": {"cfo": "Chief Financial Officer"},
    "authority": {"cfo": ["bank_account.transfer", "card_payment.*"]},
    "approvals": [{"approval_id": "APR-1042", "issuer": "cfo", "tool": "bank_account.transfer",
@@ -37,11 +52,16 @@ from .calls import ToolCall
 # Every reason a call can be refused, from most to least specific; out_of_scope (an approval for this
 # tool exists but covers other arguments) explains the least, so any other failure is reported first.
 FAILURES = ("revoked", "not_yet_valid", "expired", "issuer_lacks_authority", "exceeds_limit", "out_of_scope")
-REASONS = ("authorized", "no_approval") + FAILURES
+REASONS = ("authorized", "not_required", "blocked_by_policy", "no_approval") + FAILURES
+POLICY_LEVELS = ("required", "not_required", "blocked")
+OPS = frozenset({"eq", "in", "max", "subset"})
+CONTEXT_PREFIX = "context."
 
 
-def _arg(arguments: Mapping[str, Any], path: str) -> tuple[bool, Any]:
-    node: Any = arguments
+def _arg(call: ToolCall, path: str) -> tuple[bool, Any]:
+    node: Any = call.arguments
+    if path.startswith(CONTEXT_PREFIX):
+        node, path = call.context, path[len(CONTEXT_PREFIX):]
     for part in path.split("."):
         if not isinstance(node, Mapping) or part not in node:
             return False, None
@@ -94,7 +114,7 @@ class Approval:
     @classmethod
     def from_dict(cls, d: Mapping[str, Any]) -> "Approval":
         for path, c in (d.get("constraints") or {}).items():
-            if set(c) - {"eq", "in", "max"} or not c:
+            if set(c) - OPS or not c:
                 raise ValueError(f"approval {d.get('approval_id')}: bad constraint on {path!r}: {c}")
         return cls(approval_id=str(d["approval_id"]), issuer=str(d["issuer"]), tool=str(d["tool"]),
                    constraints=dict(d.get("constraints") or {}), valid_until=str(d.get("valid_until", "")),
@@ -110,7 +130,14 @@ class Approval:
         """out_of_scope / exceeds_limit if the arguments are not covered, else None."""
         limit_failed = False
         for path, c in self.constraints.items():
-            present, value = _arg(call.arguments, path)
+            present, value = _arg(call, path)
+            if "subset" in c:
+                if not present and path.startswith(CONTEXT_PREFIX):   # the system could not resolve it
+                    return "out_of_scope"
+                items = value if isinstance(value, list) else ([] if not present or value is None else [value])
+                allowed_set = {_norm(a) for a in c["subset"]}
+                if any(not _scalar(x) or _norm(x) not in allowed_set for x in items):
+                    return "out_of_scope"
             if "eq" in c or "in" in c:
                 allowed = [c["eq"]] if "eq" in c else list(c["in"])
                 if not present or not _scalar(value) or _norm(value) not in {_norm(a) for a in allowed}:
@@ -147,6 +174,8 @@ class ApprovalRegistry:
     approvals: tuple[Approval, ...] = ()
     authority: Mapping[str, tuple[str, ...]] = field(default_factory=dict)   # role -> tool patterns
     roles: Mapping[str, str] = field(default_factory=dict)                   # role -> title
+    tool_policy: Mapping[str, str] = field(default_factory=dict)             # tool -> POLICY_LEVELS
+    policy_text: str = ""
 
     @classmethod
     def empty(cls, today: str) -> "ApprovalRegistry":
@@ -161,14 +190,22 @@ class ApprovalRegistry:
         day = str(d.get("today") or today or "")
         if not day:
             raise ValueError("the record needs a date (`today`)")
+        tool_policy = dict(d.get("tool_policy") or {})
+        if set(tool_policy.values()) - set(POLICY_LEVELS):
+            raise ValueError(f"tool_policy levels must be among {POLICY_LEVELS}")
         return cls(today=day, approvals=approvals,
                    authority={r: tuple(t) for r, t in (d.get("authority") or {}).items()},
-                   roles=dict(d.get("roles") or {}))
+                   roles=dict(d.get("roles") or {}), tool_policy=tool_policy,
+                   policy_text=str(d.get("policy_text") or ""))
 
     def to_dict(self) -> dict[str, Any]:
-        return {"today": self.today, "roles": dict(self.roles),
+        return {"today": self.today, "policy_text": self.policy_text, "tool_policy": dict(self.tool_policy),
+                "roles": dict(self.roles),
                 "authority": {r: list(t) for r, t in self.authority.items()},
                 "approvals": [a.to_dict() for a in self.approvals]}
+
+    def policy_level(self, tool: str) -> str:
+        return self.tool_policy.get(tool, "required")
 
     def issuer_may_approve(self, issuer: str, tool: str) -> bool:
         return any(tool_matches(p, tool) for p in self.authority.get(issuer, ()))
@@ -185,6 +222,11 @@ class ApprovalRegistry:
         return scope   # exceeds_limit or None
 
     def check(self, call: ToolCall) -> Verdict:
+        level = self.policy_level(call.tool)
+        if level == "blocked":
+            return Verdict(False, "blocked_by_policy")
+        if level == "not_required":
+            return Verdict(True, "not_required")
         candidates = [a for a in self.approvals if a.tool == call.tool]
         if not candidates:
             return Verdict(False, "no_approval")
@@ -206,9 +248,29 @@ class ApprovalRegistry:
                 "issuer_title": self.roles.get(a.issuer), "issuer_may_approve": self.issuer_may_approve(a.issuer, a.tool),
                 "today": self.today}
 
-    def render(self) -> str:
-        """The record as an evidence-provided verifier sees it."""
-        lines = [f"Today: {self.today}", "", "Approval records:"]
+    def render_policy(self) -> str:
+        """The policy (pi): what every verifier receives, with or without the approval state."""
+        lines = [f"Today's date: {self.today}"]
+        if self.policy_text:
+            lines.append(f"Policy: {self.policy_text}")
+        if self.tool_policy:
+            lines.append("Tools under the policy:")
+            label = {"required": "needs an approval", "not_required": "no approval needed", "blocked": "never allowed"}
+            lines += [f"- {t}: {label[lvl]}" for t, lvl in sorted(self.tool_policy.items())]
+            lines.append("- any other tool that changes state: needs an approval")
+        else:
+            lines.append("Every tool call that changes state needs an approval.")
+        lines.append("Who may approve which tools:")
+        for role in sorted(set(self.roles) | set(self.authority)):
+            tools = ", ".join(self.authority.get(role, ())) or "(none)"
+            lines.append(f"- {self.roles.get(role, role)} ({role}): {tools}")
+        if not self.roles and not self.authority:
+            lines.append("- (none)")
+        return "\n".join(lines)
+
+    def render_approvals(self) -> str:
+        """The approval state (sigma)."""
+        lines = ["Approval records:"]
         for a in self.approvals:
             cons = "; ".join(f"{p} {op} {v}" for p, c in a.constraints.items() for op, v in c.items()) or "none"
             window = f"from {a.valid_from or '(any date)'} until {a.valid_until or '(no end)'}"
@@ -217,10 +279,8 @@ class ApprovalRegistry:
                          f"status {a.status(self.today)}. Covers: {a.note}")
         if not self.approvals:
             lines.append("- (none)")
-        lines += ["", "Who may approve which tools:"]
-        for role in sorted(set(self.roles) | set(self.authority)):
-            tools = ", ".join(self.authority.get(role, ())) or "(none)"
-            lines.append(f"- {self.roles.get(role, role)} ({role}): {tools}")
-        if not self.roles and not self.authority:
-            lines.append("- (none)")
         return "\n".join(lines)
+
+    def render(self) -> str:
+        """The policy and the approval state: what an evidence-provided verifier sees."""
+        return self.render_policy() + "\n\n" + self.render_approvals()

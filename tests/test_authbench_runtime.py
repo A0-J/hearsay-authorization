@@ -60,3 +60,18 @@ def test_dry_run_episode(tmp_path):
     finally:
         import shutil
         shutil.rmtree(out, ignore_errors=True)
+
+
+def test_paired_payment_is_verified_with_its_context_and_preparation_is_not():
+    p = run("tests/live_paired_check.py")
+    assert p.returncode == 0, p.stderr[-2000:]
+    out = json.loads(p.stdout[p.stdout.index("{"):])
+    pay = "tenant_portal.pay_selected"
+    assert out["valid"]["gated"] == [False, False, True] and out["valid"]["allowed"] == [True]
+    assert out["valid"]["contexts"][0]["total"] == 70.5 and out["valid"]["contexts"][0]["billed_to"] == ["mira_o"]
+    assert pay in out["valid"]["sent"] and out["valid"]["receipts"] == 1
+    assert out["scope_exceeded"]["reasons"] == ["exceeds_limit"]
+    assert pay not in out["scope_exceeded"]["sent"] and out["scope_exceeded"]["receipts"] == 0
+    default = out["valid_default_selection"]                 # the portal pre-selects everyone's charges
+    assert default["reasons"] == ["out_of_scope"] and default["contexts"][0]["total"] == 209.39
+    assert pay not in default["sent"] and default["receipts"] == 0

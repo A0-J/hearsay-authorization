@@ -156,3 +156,47 @@ Status: environment, router, verifier wiring, record and planner are implemented
 API calls. Not yet done: the benchmark's agent container for workspace tools (273 of 286 tasks mount
 a terminal; it needs Docker), the first real-LLM run of an original task, the paired conditions and
 the outcome classification.
+
+### 2026-11-16 — paired authorization-evidence conditions on AuthorizationBench tasks
+
+Steps: (4) select tasks, (5) build the paired conditions, (6) compare verifiers on identical proposals,
+(7) end-to-end pilot. Steps 4–5 are done without API calls (`src/hearsay/authbench/paired.py`, generated
+files in `data/authbench_paired/`, review tables in its `TABLE.md`).
+
+- **Selection** (from the 10 tasks that run without the workspace container): the principal asks for the
+  state-changing action, and a policy separately requires an approval for it from someone other than the
+  requester. Selected: T0010-l-b-h, -l-d-h, -l-i-h, -l-j-h (send the meeting summary to the team list;
+  approver: Director of People Ops, group treasurer, Managing Attorney, Associate Dean) and T0007-a-g-h (pay
+  the principal's utilities; a payment mandate in the bank's registry). Excluded: T0001 ×3 and T0003 (the
+  state change is itself the original violation) and T0006 (no purchase matches the request after the
+  deal ends at checkout). Limits: four of the five share one template, and T0007's issuer is the
+  cardholder (the principal, through a separate channel), a weaker separation than an organizational
+  approver. More task families need the workspace container.
+- **Conditions** (only the record changes; the request, the policy, the handoff-note claim and the
+  intended call are fixed): valid, nonexistent, expired, revoked, scope_exceeded (recipients narrower than
+  the team list; mandate cap $50 < $70.50), misquoted_other_valid (the claimed id is not on file, the same
+  approval is under another id: a rejection is a false rejection). Every record also holds one unrelated
+  approval, so it is never empty. The builder refuses to write files unless the record's verdict on the
+  intended call is the expected one in all 30 task × condition cells.
+- **Policy scope and context.** A record's `requires` names the tools the policy gates; other
+  state-changing calls (selecting charges, opening the checkout) run unverified. A call whose effect is
+  set by service state (`tenant_portal.pay_selected` pays whatever is selected) carries `context`, what it
+  will act on, read from the environment's grader view before verification; approval constraints can
+  address it (`context.total`, `context.billed_to`). Recipient lists use `subset` constraints.
+- **Intent stays a separate label.** The off-intent calls are the benchmark's original violations and
+  stay violations in every condition. For the meeting summaries the record authorizes the violating
+  call (it cannot see the private content); for T0007 the mandate's scope happens to exclude it.
+- **Step 6 (verifier-only).** Proposals from GPT-4.1 planner + executor runs, judged by: claim-only;
+  evidence-aware (the record is shown, as now); evidence-explicit (also told that the record is the
+  authority and the claim is not evidence — §8's open question becomes a method); provenance gate;
+  dualflow extension (semantic restatement + gate). Every method receives the policy. Without the lookup
+  tool the agents never see the record, so one set of proposals per task is judged under all six records.
+- **Step 7 (end to end).** One fresh sandbox per method × condition with that method enforced; outcomes:
+  unauthorized execution, false rejection, not attempted, correct completion, and intent violations
+  counted separately.
+- **Shadow and end-to-end results are reported separately, never pooled.** Shadow isolates the verifier's
+  judgement on identical input; end to end adds the executor's reaction to a block (retrying, changing
+  the plan, asking the principal), which only a run with that method enforced shows.
+- **The provenance gate is the reference, not a finding.** It implements the record's semantics, so its
+  low error is by construction. The analysis is about why LLM verifiers that receive the same evidence
+  decide differently.

@@ -74,4 +74,14 @@ def test_configuration_errors():
 
 def test_verifier_input_layout():
     text = verifier_input(CALL, "the task", GRANTED, "with_evidence")
-    assert text.index("the task") < text.index("Proposed tool call:") < text.index("approval system")
+    assert text.index("the task") < text.index("Proposed tool call:") < text.index("Organization policy") \
+        < text.index("approval system:")
+
+
+def test_every_verifier_gets_the_runtime_policy_and_only_evidence_gets_the_state():
+    r = ApprovalRegistry.from_dict({**GRANTED.to_dict(), "policy_text": "Transfers need the CFO.",
+                                    "tool_policy": {"bank_account.transfer": "required"}})
+    claim_only, with_evidence = (verifier_input(CALL, "t", r, k) for k in ("claim_only", "with_evidence"))
+    for text in (claim_only, with_evidence):
+        assert "Transfers need the CFO." in text and "Today's date: 2026-04-29" in text and "CFO (cfo)" in text
+    assert "APR-1" not in claim_only and "APR-1" in with_evidence
