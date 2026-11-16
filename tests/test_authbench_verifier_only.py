@@ -3,6 +3,7 @@
 from hearsay.authbench import dataset, evaluate, verifier_only
 from hearsay.authbench.fake import ClaimFollowerClient
 from hearsay.authbench.paired import CONDITIONS, DELEGATION_VARIANTS, SPECS
+from hearsay.authbench.verify import SEMANTIC
 
 WORK = verifier_only.items()
 N_PROBES = sum(len(s.probes) for s in SPECS)
@@ -22,23 +23,23 @@ def test_items_cover_probes_delegations_and_conditions():
 
 
 def test_label_totals():
-    m = evaluate.metrics(scored_with(lambda it, lab: True))["m"]
+    m = evaluate.metrics(scored_with(lambda it, lab: True))["methods"]["m"]
     assert (m["n"], m["n_unauthorized"], m["n_valid"], m["n_off_intent"]) == (132, 96, 20, 16)
 
 
 def test_expected_judgments_of_reference_verifiers():
-    final = evaluate.metrics(scored_with(lambda it, lab: lab["final_allow"]))["m"]
+    final = evaluate.metrics(scored_with(lambda it, lab: lab["final_allow"]))["methods"]["m"]
     assert final["unauthorized_accepted"] == final["valid_rejected"] == final["off_intent_accepted"] == 0
     assert final["agree_final"] == final["n"] and final["claim_dependence"]["changed"] == 0
 
-    authz = evaluate.metrics(scored_with(lambda it, lab: lab["authorization_valid"]))["m"]
+    authz = evaluate.metrics(scored_with(lambda it, lab: lab["authorization_valid"]))["methods"]["m"]
     assert authz["unauthorized_accepted"] == authz["valid_rejected"] == 0
     assert authz["off_intent_accepted"] == authz["n_off_intent"]          # authorization alone lets them through
 
-    always = evaluate.metrics(scored_with(lambda it, lab: True))["m"]
+    always = evaluate.metrics(scored_with(lambda it, lab: True))["methods"]["m"]
     assert always["unauthorized_accepted"] == always["n_unauthorized"] and always["valid_rejected"] == 0
 
-    follower = evaluate.metrics(scored_with(lambda it, lab: it["delegation"] == "claim"))["m"]
+    follower = evaluate.metrics(scored_with(lambda it, lab: it["delegation"] == "claim"))["methods"]["m"]
     dep = follower["claim_dependence"]
     assert dep["pairs"] == N_PROBES * len(CONDITIONS) == dep["changed"] == dep["approve_only_with_claim"]
     assert follower["unauthorized_accepted"] == follower["n_unauthorized"] // 2   # the claim half
@@ -52,9 +53,9 @@ def test_provenance_gate_decides_exactly_the_authorization_label():
 
 def test_claim_only_and_semantic_inputs_are_reused_across_approval_states():
     client = ClaimFollowerClient()
-    verdicts = list(verifier_only.run(WORK, ("llm_claim_only", "dualflow"), client=client, model="m", n_votes=1))
+    verdicts = list(verifier_only.run(WORK, ("llm_claim_only", SEMANTIC), client=client, model="m", n_votes=1))
     claim_only = [v for v in verdicts if v["method"] == "llm_claim_only"]
-    semantic = [v["decision"]["semantic"] for v in verdicts if v["method"] == "dualflow"]
+    semantic = [v["decision"]["semantic"] for v in verdicts if v["method"] == SEMANTIC]
     # claim-only: one input per probe x delegation; the semantic flow: one per probe
     assert sum(not v["decision"]["reused"] for v in claim_only) == N_PROBES * len(DELEGATION_VARIANTS)
     assert sum(not s["reused"] for s in semantic) == N_PROBES
@@ -89,3 +90,43 @@ def test_experiment_a_config_pins_the_current_prompts_and_sampling():
     assert cfg["prompts_sha256"] == prompts.fingerprints()
     assert cfg["sampling"] == sampling_for(cfg["model"]) and cfg["model"] == "gpt-4.1"
     assert cfg["dataset"]["version"] == DATASET_VERSION and cfg["tasks"] == [s.task_id for s in SPECS]
+
+
+def scored_two_methods(aware_rule, explicit_rule):
+    index = evaluate.labels()
+    verdicts = []
+    for it in WORK:
+        lab = index[(it["task_id"], it["probe_id"], it["condition"])]
+        verdicts.append({**it, "method": "llm_with_evidence", "allow": aware_rule(it, lab)})
+        verdicts.append({**it, "method": "llm_evidence_explicit", "allow": explicit_rule(it, lab)})
+    return evaluate.score(verdicts)
+
+
+def test_claim_effect_and_explicit_effect_are_paired_contrasts():
+    # evidence-aware follows the claim where the record does not authorize; evidence-explicit follows the record
+    follows_claim = lambda it, lab: lab["authorization_valid"] or it["delegation"] == "claim"   # noqa: E731
+    follows_record = lambda it, lab: lab["authorization_valid"]                                  # noqa: E731
+    a = evaluate.analysis(scored_two_methods(follows_claim, follows_record))
+    claim = a["claim_effect"]["llm_with_evidence"]["unauthorized"]
+    assert claim["pairs"] == 96 // 2 and (claim["rate_x"], claim["rate_y"], claim["difference"]) == (1.0, 0.0, 1.0)
+    assert claim["x_only"] == claim["pairs"] and claim["y_only"] == 0
+    assert a["claim_effect"]["llm_evidence_explicit"]["unauthorized"]["difference"] == 0.0
+    explicit = a["explicit_effect"]["claim"]["unauthorized"]      # explicit vs aware, both with the claim
+    assert (explicit["rate_x"], explicit["rate_y"], explicit["difference"]) == (0.0, 1.0, -1.0)
+    assert a["explicit_effect"]["no_claim"]["unauthorized"]["difference"] == 0.0
+    # no false rejection in either: both approve every valid item
+    assert a["claim_effect"]["llm_with_evidence"]["valid"]["rate_x"] == 0.0
+    assert set(a["by_family"]) == {"meeting", "tenant_portal"}
+    assert set(a["by_condition"]["llm_with_evidence"]["claim"]) == set(CONDITIONS)
+
+
+def test_trusted_context_holds_no_label_or_violation_text():
+    for spec in SPECS:
+        context = dataset.load_inputs(spec.task_id)["trusted_context"]
+        truth = dataset.load_ground_truth(spec.task_id)
+        for probe in truth["extension"]["probes"]:
+            assert probe["description"] not in context and probe["basis"] not in context
+        for violation in truth["original"]["authorization_scope"]["violated_actions"]:
+            assert violation not in context
+        for word in ("aligned", "violat", "private", "gossip", "intent", "approv"):
+            assert word not in context.lower()

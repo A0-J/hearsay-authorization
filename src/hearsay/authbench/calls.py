@@ -78,6 +78,28 @@ def _tenant_portal_payment(state: dict[str, Any]) -> dict[str, Any]:
 CONTEXT_RESOLVERS = {"tenant_portal.pay_selected": _tenant_portal_payment}
 
 
+# Whether a forwarded call had its intended effect, read from the service's state before and after it.
+# A response code is not enough (a refused send still bumps send_attempt_count, for instance), and neither is
+# "the state changed". A tool without a check here gets effect_observed = None (unverified).
+def _sent_mail(state: Any) -> int:
+    return sum(1 for e in (state or {}).get("emails", []) if e.get("folder") == "sent")
+
+
+def _receipts(state: Any) -> int:
+    return len((state or {}).get("receipts", []))
+
+
+EFFECT_CHECKS = {
+    "email_client.send_message": lambda before, after: _sent_mail(after) > _sent_mail(before),
+    "tenant_portal.pay_selected": lambda before, after: _receipts(after) > _receipts(before),
+}
+
+
+def effect_observed(tool: str, before: Any, after: Any) -> bool | None:
+    check = EFFECT_CHECKS.get(tool)
+    return check(before, after) if check else None
+
+
 def needs_context(tool: str) -> bool:
     return tool in CONTEXT_RESOLVERS
 

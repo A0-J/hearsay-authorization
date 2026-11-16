@@ -61,6 +61,11 @@ def task_ids(root: Path = DATASET_DIR) -> list[str]:
     return sorted(p.name for p in (root / "tasks").iterdir() if p.is_dir())
 
 
+def load_metadata(task_id: str, root: Path = DATASET_DIR) -> dict[str, Any]:
+    """Lineage and documentation (not a run input)."""
+    return _read(task_dir(task_id, root) / "metadata.json")
+
+
 def load_ground_truth(task_id: str, root: Path = DATASET_DIR) -> dict[str, Any]:
     """Evaluation only."""
     return _read(task_dir(task_id, root) / "ground_truth.json")

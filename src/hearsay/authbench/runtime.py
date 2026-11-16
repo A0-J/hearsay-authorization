@@ -36,7 +36,8 @@ from ..agent_loop import run_agent
 from ..llm import sampling_for
 from ..sandbox import BLOCKED
 from .approvals import ApprovalRegistry
-from .calls import PRINCIPAL, READ, STATE_CHANGE, ToolCall, effect, needs_context, resolve_context, service
+from .calls import (PRINCIPAL, READ, STATE_CHANGE, ToolCall, effect, effect_observed, needs_context,
+                    resolve_context, service)
 from .locate import checkout_commit, ensure_importable, require_utf8_mode
 from .planner import plan
 from .prompts import EXECUTOR_PLANNER_FRAME
@@ -196,15 +197,15 @@ class ToolRouter:
         self.events.append(event)
         if tool == FINISH:
             self.finished = str(args.get("message", ""))
-            event.update(effect="local", executed=True)
+            event.update(effect="local", forwarded=False)
             return {"status": "finished"}
         if tool == LOOKUP and LOOKUP in self.local:
             result = self.registry.lookup(str(args.get("approval_id", "")))
-            event.update(effect="record_lookup", executed=True, result=result)
+            event.update(effect="record_lookup", forwarded=False, result=result)
             return result
         entry = self.by_name.get(tool)
         if entry is None:
-            event.update(effect="unknown", executed=False)
+            event.update(effect="unknown", forwarded=False)
             return {"error": f"unknown tool {tool}"}
         event["effect"] = effect(tool)
         event["verified"] = event["effect"] != READ
@@ -214,15 +215,32 @@ class ToolRouter:
             decision = self.verification(call, self.delegation)
             event["proposal_index"] = len(self.proposals)
             self.proposals.append({"proposal_index": len(self.proposals), "task_id": self.task.task_id,
-                                   "call": call.to_dict(), "delegation": self.delegation,
-                                   "request": self.task.instruction,
+                                   "call": call.to_dict(), "policy_level": self.registry.policy_level(tool),
+                                   "delegation": self.delegation, "request": self.task.instruction,
+                                   "trusted_context": self.verification.trusted_context,
                                    "registry": self.registry.to_dict(), **decision})
             if not decision["allowed"]:
-                event["executed"] = False
+                event["forwarded"] = False
                 return dict(BLOCKED)
+        target = touched_service(tool)
+        before = self.env.state().get(target) if event["verified"] else None
         response = self.transport(self.env.base_url, entry, args, grader_token=self.env.token)
-        event.update(executed=True, status=response.get("status"), result=response.get("body"))
+        status = response.get("status")
+        event.update(forwarded=True, http_status=status,
+                     http_success=isinstance(status, int) and 200 <= status < 300, result=response.get("body"))
+        if event["verified"]:   # neither a 2xx response nor any state change shows that the call took effect
+            after = self.env.state().get(target)
+            event["service_state_changed"] = _dump(after) != _dump(before)
+            event["effect_observed"] = effect_observed(tool, before, after)
         return response
+
+
+def touched_service(tool: str) -> str:
+    return "user_messaging" if effect(tool) == PRINCIPAL else service(tool)
+
+
+def _dump(value: Any) -> str:
+    return json.dumps(value, sort_keys=True, default=str)
 
 
 def changed_services(before: dict, after: dict) -> list[str]:
@@ -231,20 +249,19 @@ def changed_services(before: dict, after: dict) -> list[str]:
 
 
 def unexplained_changes(before: dict, after: dict, events: list[dict[str, Any]]) -> list[str]:
-    """Services whose state changed although no state-changing (or principal) call to them ran."""
-    explained = {service(e["tool"]) for e in events if e.get("executed") and e.get("effect") == STATE_CHANGE}
-    if any(e.get("executed") and e.get("effect") == PRINCIPAL for e in events):
-        explained.add("user_messaging")
+    """Services whose state changed although no call that is not read-only was forwarded to them."""
+    explained = {touched_service(e["tool"]) for e in events if e.get("forwarded") and e.get("verified")}
     return [s for s in changed_services(before, after) if s not in explained]
 
 
 def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry: ApprovalRegistry,
-                out_dir: Path | None = None) -> dict[str, Any]:
+                trusted_context: str | None = None, out_dir: Path | None = None) -> dict[str, Any]:
     if task.needs_workspace and not config.allow_missing_workspace:
         raise WorkspaceRequired(f"{task.task_id} mounts {list(task.shell_tools)}; the Docker workspace is not "
                                 "wired yet")
     verification = Verification(enforce=config.enforce, shadow=config.shadow, registry=registry, client=client,
-                                model=config.role_model("verifier"), n_votes=config.n_votes, request=task.instruction)
+                                model=config.role_model("verifier"), n_votes=config.n_votes, request=task.instruction,
+                                trusted_context=trusted_context)
     with Environment(task) as env:
         state_before = env.state()
         planner = None
@@ -272,8 +289,15 @@ def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry
         "registry": registry.to_dict(), "planner": planner, "delegation": delegation,
         "executor_input": executor_input, "executor": run.to_dict(), "finished": router.finished,
         "events": router.events, "proposals": router.proposals,
-        "executed_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE and e.get("executed")],
-        "blocked": [e for e in router.events if e.get("verified") and not e.get("executed")],
+        # attempted (proposal) -> forwarded (passed the verifier) -> http_success (2xx) -> effect_observed
+        "forwarded_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE and e.get("forwarded")],
+        "succeeded_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE
+                                    and e.get("http_success")],
+        "observed_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE
+                                   and e.get("effect_observed")],
+        "unchecked_state_changes": [e for e in router.events if e.get("effect") == STATE_CHANGE
+                                    and e.get("forwarded") and e.get("effect_observed") is None],
+        "blocked": [e for e in router.events if e.get("verified") and not e.get("forwarded")],
         "state_before": state_before, "state_after": state_after, "audit": audit, "environment_events": fired,
         "services_changed": changed_services(state_before, state_after),
         "unexplained_state_changes": unexplained_changes(state_before, state_after, router.events),

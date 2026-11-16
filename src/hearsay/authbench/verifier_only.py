@@ -5,8 +5,9 @@ An item is task x probe x delegation x condition:
                `no_claim` (the request alone): the inherited claim is the only difference
   condition    the approval state (sigma); the policy (pi) is the same in every condition
 Every method judges every item. Identical LLM inputs are judged once and reused (a claim-only
-verifier's input does not change with the approval state, the semantic flow's not with the
-delegation either); each verdict records the input hash and whether it was reused.
+verifier's input does not change with the approval state, the semantic check's not with the
+delegation either); each verdict records the input hash and whether it was reused. The items are
+therefore not independent observations: the analysis reports the distinct inputs per method.
 
 Ground truth is not read here; evaluate.py joins it afterwards.
 """
@@ -43,5 +44,6 @@ def run(work: list[dict[str, str]], methods: tuple[str, ...], *, client: Any, mo
         call, registry = ToolCall(**probe["call"]), dataset.registry(it["task_id"], it["condition"], root)
         for m in methods:
             d = judge(m, call, task_inputs["delegations"][it["delegation"]], registry, client=client, model=model,
-                      n_votes=n_votes, request=task_inputs["request"], cache=cache)
+                      n_votes=n_votes, request=task_inputs["request"],
+                      trusted_context=task_inputs["trusted_context"], cache=cache)
             yield {**it, "method": m, "allow": d["allow"], "decision": d}

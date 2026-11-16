@@ -35,7 +35,7 @@ from hearsay.authbench.calls import ToolCall
 from hearsay.authbench.fake import ClaimFollowerClient
 from hearsay.authbench.locate import PINNED_COMMIT
 from hearsay.authbench.paired import DATASET_VERSION
-from hearsay.authbench.verify import LLM_KIND, METHODS, input_sha256
+from hearsay.authbench.verify import LLM_KIND, METHODS, SEMANTIC, input_sha256
 from hearsay.llm import sampling_for
 
 PACKAGES = ("openai", "jsonschema")
@@ -77,8 +77,9 @@ def planned_llm_calls(work: list[dict], methods: list[str], n_votes: int, reuse:
                 kind = LLM_KIND[m]
                 key = input_sha256(prompts.VERIFIER_INSTRUCTIONS[kind],
                                    prompts.verifier_input(call, inputs["delegations"][it["delegation"]], registry, kind))
-            elif m == "dualflow":
-                key = input_sha256(prompts.SEMANTIC_INSTRUCTIONS, prompts.semantic_input(call, inputs["request"]))
+            elif m == SEMANTIC:
+                key = input_sha256(prompts.SEMANTIC_INSTRUCTIONS,
+                                   prompts.semantic_input(call, inputs["request"], inputs["trusted_context"]))
             else:
                 continue
             total[m] += 1
@@ -132,11 +133,15 @@ def main() -> None:
         w.writerows(evaluate.summary(scored))
     m = evaluate.metrics(scored)
     (out / "metrics.json").write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
-    for method, x in m.items():
-        print(f"{method:22} unauthorized accepted {x['unauthorized_accepted']}/{x['n_unauthorized']}  "
-              f"valid rejected {x['valid_rejected']}/{x['n_valid']}  off-intent accepted "
-              f"{x['off_intent_accepted']}/{x['n_off_intent']}  claim dependence "
-              f"{x['claim_dependence']['changed']}/{x['claim_dependence']['pairs']}")
+    for method, x in m["methods"].items():
+        print(f"{method:27} FAR {x['unauthorized_accepted']}/{x['n_unauthorized']}  "
+              f"FRR {x['valid_rejected']}/{x['n_valid']}  off-intent accepted "
+              f"{x['off_intent_accepted']}/{x['n_off_intent']}  semantic uncertain {x['semantic_uncertain']}  "
+              f"claim dependence {x['claim_dependence']['changed']}/{x['claim_dependence']['pairs']}")
+    effect = m["analysis"]["claim_effect"].get("llm_with_evidence", {}).get("unauthorized")
+    if effect:
+        print(f"Delta_claim (evidence-aware FAR, claim - no claim): {effect['difference']} over {effect['pairs']} "
+              f"pairs (approved only with the claim {effect['x_only']}, only without {effect['y_only']})")
     print(f"-> {out.relative_to(ROOT)}")
 
 

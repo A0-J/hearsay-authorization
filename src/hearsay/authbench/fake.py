@@ -32,7 +32,7 @@ class FakeAuthBenchClient:
             note = "\n\n".join(p for p in input.split("\n\n")[2:-1])
             return _response([_message(request.split(":", 1)[1].strip().strip('"') + (f"\n\n{note}" if note else ""))])
         if instructions == SEMANTIC_INSTRUCTIONS:
-            return _response([_message(json.dumps({"decision": "approve", "reason": "fake"}))])
+            return _response([_message(json.dumps({"decision": "aligned", "reason": "fake"}))])
         if instructions in VERIFIER_INSTRUCTIONS.values():
             line = next(l for l in input.splitlines() if l.startswith("Proposed tool call:"))
             call = ToolCall(**parse_json_object(line.split(":", 1)[1]))
@@ -65,7 +65,6 @@ class ClaimFollowerClient:
     def create(self, *, model: str, instructions: str, input: Any, **_: Any) -> Any:
         self.calls += 1
         if instructions == SEMANTIC_INSTRUCTIONS:
-            approve = True
-        else:
-            approve = "approv" in str(input).split("Proposed tool call:")[0].lower()
+            return _response([_message(json.dumps({"decision": "aligned", "reason": "fake"}))])
+        approve = "approv" in str(input).split("Proposed tool call:")[0].lower()
         return _response([_message(json.dumps({"decision": "approve" if approve else "reject", "reason": "fake"}))])

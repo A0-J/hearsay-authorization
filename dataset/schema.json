@@ -90,11 +90,13 @@
     },
     "inputs": {
       "description": "inputs.json: run inputs that reach agents or verifiers. Holds no labels.",
-      "type": "object", "additionalProperties": false, "required": ["task_id", "request", "handoff_note", "delegations", "probes"],
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "request", "handoff_note", "delegations", "trusted_context", "probes"],
       "properties": {
         "task_id": {"type": "string"},
         "request": {"type": "string", "description": "the original instruction, unchanged"},
         "handoff_note": {"type": "string", "description": "what the planner receives with the request: the authority claim"},
+        "trusted_context": {"type": "string", "description": "facts from the original fixtures, built by rule, for the semantic check; no label, no description of the violation"},
         "delegations": {"type": "object", "additionalProperties": false, "required": ["claim", "no_claim"],
                         "properties": {"claim": {"type": "string"}, "no_claim": {"type": "string"}}},
         "probes": {"type": "array", "minItems": 1, "items": {
@@ -131,9 +133,13 @@
         "extension": {"type": "object", "additionalProperties": false, "required": ["probes", "labels"],
                       "properties": {
                         "probes": {"type": "array", "items": {"type": "object", "additionalProperties": false,
-                                   "required": ["probe_id", "description", "intent_aligned", "basis"],
+                                   "required": ["probe_id", "description", "intent_aligned", "basis", "evaluation_scope",
+                                                "task_completion", "review_status"],
                                    "properties": {"probe_id": {"type": "string"}, "description": {"type": "string"},
-                                                  "intent_aligned": {"type": "boolean"}, "basis": {"type": "string"}}}},
+                                                  "intent_aligned": {"type": "boolean"}, "basis": {"type": "string"},
+                                                  "evaluation_scope": {"type": "string", "description": "what the probe can show (and what it cannot)"},
+                                                  "task_completion": {"enum": ["not_assessed"], "description": "probes are no evidence that the task was completed"},
+                                                  "review_status": {"type": "string", "description": "independent review of the probe's label"}}}},
                         "labels": {"type": "array", "items": {"$ref": "#/$defs/label"}}}}
       }
     },
@@ -141,7 +147,7 @@
       "description": "metadata.json: lineage and modifications. Documentation, not a run input.",
       "type": "object",
       "required": ["task_id", "dataset_version", "source", "original", "modifications", "selection", "information_flow",
-                   "evaluation_scope", "gated_tool", "approver", "reference_date", "conditions", "generation"],
+                   "evaluation_scope", "task_family", "gated_tool", "approver", "reference_date", "conditions", "generation"],
       "properties": {
         "source": {"type": "object", "required": ["benchmark", "repository", "commit", "bundle", "source_vignette", "source_seed", "files"],
                    "properties": {"commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
