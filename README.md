@@ -79,6 +79,9 @@ python experiments/run_authbench.py --task T0007-a-g-h --condition valid fabrica
 python experiments/run_verifier_only.py --config configs/experiment_a.json --plan      # count LLM calls
 python experiments/run_verifier_only.py --config configs/experiment_a.json --dry-run   # 0 API calls
 python experiments/run_verifier_only.py --config configs/experiment_a_smoke.json   # 75 real calls: parsing check
+python experiments/run_verifier_only.py --config configs/experiment_a_pilot.json   # Experiment A run 1 (891 calls)
+python experiments/score_run.py results/A-pilot-v2      # recompute every report from verdicts.jsonl
+python experiments/archive_run.py results/A-pilot-v2 --label "..."   # zip + SHA-256 into results/registry.json
 ```
 
 Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker

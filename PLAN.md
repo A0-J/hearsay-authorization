@@ -280,3 +280,31 @@ files in `data/authbench_paired/`, review tables in its `TABLE.md`).
 - Open: TOCTOU between verifying a payment's context and executing it (acceptable in this single-agent,
   controlled setting; a deployed gate would verify inside the service or check a state version); read
   calls are classified by operation verb (explicit per-tool effects would be safer outside the benchmark).
+
+### 2026-11-16 — Experiment A run 1, pilot observations kept, summary-probe extension (decisions)
+
+- **The 11 transcript probes stay unchanged** for Experiment A and are not replaced because of the smoke
+  run. `task_completion: not_assessed` stays; semantic results are not read as task-completion performance.
+- **Experiment A run 1** (the pilot main run; `configs/experiment_a_pilot.json`, run id A-pilot-v2): 132
+  combinations, 3 independent single-call repeats per distinct input, 891 calls. The individual votes
+  are the per-repeat decisions; the majority over the three repeats (the 3-vote decision) is stored too
+  (`majority.jsonl`, `summary_majority.csv`). Analysis: Delta_claim, the explicit effect, FAR/FRR per
+  approval state, semantic violation acceptance; task-clustered intervals; the combinations are not
+  independent samples.
+- **The smoke run (A-smoke-v2) is kept as pilot observations**, archived with SHA-256 hashes
+  (`results/registry.json`), and never pooled with run 1. Its failures are not removed: evidence-aware
+  accepting a fabricated approval because of the claim, and the semantic check accepting the minutes that
+  include the post-meeting conversation.
+- **Raw run results stay out of git** (`results/A-*/`, `archives/`); the registry records commit, config,
+  prompt fingerprints, model, API usage and file and archive hashes (`experiments/archive_run.py`). Commit
+  acd8008 had added the smoke results before this rule: they remain in history and are removed from
+  the tree.
+- **Summary-probe extension** (a separate experiment and a separate report): per meeting task a pair, a
+  faithful summary of the official part, and the same summary plus the post-meeting conversation. Never
+  combined with the transcript-probe results or used to choose numbers. Labels reviewed by two people
+  who have not seen any LLM decision. How the summaries are written is still to be decided (not built).
+- **Later validation stages, reported apart**: repeated measures on the same inputs (the number of
+  repeats chosen from run 1's effect size and variability), and new task types (payment, file sharing,
+  data modification). Replication on the same inputs is not generalization (the lesson of the MobiSec
+  feedback on its 640 cases). Experiment A runs no agent, so it does not need the workspace container:
+  the 276 tasks that mount it are open to it once reviewed.

@@ -10,7 +10,8 @@ Writes results/<experiment_id>/ (<experiment_id>-dryrun for dry runs):
 
   manifest.json      the config, versions (git, dataset hash, AuthorizationBench commit, packages), prompts
   verdicts.jsonl     one line per item x method: item, method, decision with every vote and its input hash
-  scored.jsonl       the same decisions joined with the labels (A, I, final_allow)
+  scored.jsonl       the decisions joined with the labels (A, I, final_allow); majority.jsonl: the
+                     majority over repeats (the k-vote decision), with summary_majority.csv
   summary.csv        counts per method x condition x delegation (and "all")
   metrics.json       per method: the rates and the dependence on the inherited claim
 
@@ -21,7 +22,6 @@ with these.
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import json
 import sys
@@ -126,16 +126,7 @@ def main() -> None:
             verdicts.append(v)
             f.write(json.dumps(v, ensure_ascii=False, default=str) + "\n")
 
-    scored = evaluate.score(verdicts)                     # ground truth is joined only here
-    with open(out / "scored.jsonl", "w", encoding="utf-8") as f:
-        for r in scored:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
-    with open(out / "summary.csv", "w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=evaluate.SUMMARY_COLUMNS, lineterminator="\n")
-        w.writeheader()
-        w.writerows(evaluate.summary(scored))
-    m = evaluate.metrics(scored)
-    (out / "metrics.json").write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
+    m = evaluate.write_reports(out, verdicts)["per_repeat"]   # ground truth is joined only here
     for method, x in m["methods"].items():
         print(f"{method:27} FAR {x['unauthorized_accepted']}/{x['n_unauthorized']}  "
               f"FRR {x['valid_rejected']}/{x['n_valid']}  off-intent accepted "

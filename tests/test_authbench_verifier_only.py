@@ -160,3 +160,19 @@ def test_repeats_resample_while_identical_inputs_within_a_repeat_are_reused():
         first_uses = [v for v in verdicts if v["repeat"] == r and v["method"] == "llm_claim_only"
                       and not v["decision"]["reused"]]
         assert len(first_uses) == N_PROBES * len(DELEGATION_VARIANTS)  # prefetching keeps `reused` meaningful
+
+
+def test_majority_over_repeats_and_reports_reproduce_from_verdicts(tmp_path):
+    index = evaluate.labels()
+    verdicts = []
+    for r in range(3):                       # approve every A = 0 item in repeats 0 and 1: a 2-of-3 majority
+        for it in WORK:
+            lab = index[(it["task_id"], it["probe_id"], it["condition"])]
+            verdicts.append({**it, "repeat": r, "method": "m", "allow": lab["authorization_valid"] or r < 2})
+    reports = evaluate.write_reports(tmp_path, verdicts)
+    per_repeat, majority = (reports[k]["methods"]["m"] for k in ("per_repeat", "majority_over_repeats"))
+    assert per_repeat["n_unauthorized"] == 3 * 96 and per_repeat["unauthorized_accepted"] == 2 * 96
+    assert majority["n_unauthorized"] == 96 and majority["unauthorized_accepted"] == 96
+    assert {p.name for p in tmp_path.iterdir()} == {"scored.jsonl", "majority.jsonl", "summary.csv",
+                                                     "summary_majority.csv", "metrics.json"}
+    assert evaluate.write_reports(tmp_path, verdicts) == reports      # deterministic

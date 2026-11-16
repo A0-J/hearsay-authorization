@@ -232,3 +232,40 @@ def metrics(scored: list[dict[str, Any]]) -> dict[str, Any]:
                          "agree_final_rate": rate(c["agree_final"], c["n"]),
                          "claim_dependence": {**d, "rate": rate(d["changed"], d["pairs"])}}
     return {"methods": per_method, "analysis": analysis(scored)}
+
+
+def majority(scored: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One decision per item and method: the strict majority of its repeats (a tie rejects). With single-call
+    repeats this is the k-vote majority of the same input; the per-repeat decisions stay the individual votes."""
+    groups: dict[tuple, list[dict[str, Any]]] = defaultdict(list)
+    for r in scored:
+        groups[(r["method"], r["item_id"])].append(r)
+    out = []
+    for rows in groups.values():
+        approvals = sum(r["allow"] for r in rows)
+        out.append({**rows[0], "repeat": "majority", "allow": approvals * 2 > len(rows), "votes": len(rows),
+                    "approvals": approvals})
+    return out
+
+
+def write_reports(out_dir, verdicts: list[dict[str, Any]], root=dataset.DATASET_DIR) -> dict[str, Any]:
+    """Everything derived from verdicts.jsonl: per-repeat decisions (the individual votes) and the
+    majority over repeats, each with its summary and metrics. Re-running it reproduces the reports."""
+    import csv
+    import json
+    from pathlib import Path
+    out_dir = Path(out_dir)
+    scored = score(verdicts, root)
+    by_majority = majority(scored)
+    for name, rows in (("scored.jsonl", scored), ("majority.jsonl", by_majority)):
+        with open(out_dir / name, "w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    for name, rows in (("summary.csv", scored), ("summary_majority.csv", by_majority)):
+        with open(out_dir / name, "w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=SUMMARY_COLUMNS, lineterminator="\n")
+            w.writeheader()
+            w.writerows(summary(rows))
+    reports = {"per_repeat": metrics(scored), "majority_over_repeats": metrics(by_majority)}
+    (out_dir / "metrics.json").write_text(json.dumps(reports, indent=2) + "\n", encoding="utf-8")
+    return reports
