@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from importlib import metadata
 from pathlib import Path
 
-from common import RESULTS, ROOT, client_for, run_meta
+from common import RESULTS, ROOT, client_for, fatal_api_error, run_meta, write_paused
 
 from hearsay.llm import complete, sampling_for
 from hearsay.parsing import parse_json_object
@@ -65,6 +65,7 @@ def main() -> int:
     ap.add_argument("--config", type=Path, required=True)
     ap.add_argument("--plan", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--stop-after", type=int, help="pause after this many new calls (a checkpoint)")
     a = ap.parse_args()
     cfg = json.loads(a.config.read_text(encoding="utf-8"))
     data = ROOT / "dataset" / cfg.get("dataset_dir", "exp1")
@@ -106,7 +107,7 @@ def main() -> int:
             experiment=cfg.get("experiment", "Experiment 1 run 1 (verifier-only)"), config=cfg, config_file=a.config.as_posix(),
             dry_run=a.dry_run, dataset=manifest, packages={p: metadata.version(p) for p in ("openai", "requests")},
             calls_planned=len(work)), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    print(f"{len(done)} already recorded, {len(todo)} to run -> {out.relative_to(ROOT)}")
+    print(f"{len(done)} already recorded, {len(todo)} to run -> {out}")
     client = FakeClient() if a.dry_run else client_for(cfg["model"])
     lock, n = threading.Lock(), 0
 
@@ -120,17 +121,55 @@ def main() -> int:
                 "served_model": res["served_model"], "stop_reason": res.get("stop_reason"),
                 "usage": res["usage"], "latency_ms": res["latency_ms"]}
 
-    with open(path, "a", encoding="utf-8") as f, ThreadPoolExecutor(max_workers=cfg["workers"]) as pool:
-        futures = [pool.submit(one, c, r) for c, r in todo]
-        for fut in as_completed(futures):
-            v = fut.result()
+    # Pause, never lose results. Every reply is written as soon as it returns. A fatal API error (usage limit,
+    # quota, billing, authentication), any other call that failed after the client's retries, a STOP file in the
+    # run directory, or --stop-after stops new submissions; calls already in flight are still recorded;
+    # PAUSED.json says why and how to resume (rerun the same command: recorded calls are skipped).
+    if a.stop_after is not None:
+        todo = todo[: a.stop_after]
+    (out / "PAUSED.json").unlink(missing_ok=True)
+    pool = ThreadPoolExecutor(max_workers=cfg["workers"])
+    pending, it, stop = set(), iter(todo), {"reason": None}
+
+    def refill():
+        while stop["reason"] is None and len(pending) < 2 * cfg["workers"]:
+            if (out / "STOP").exists():
+                stop["reason"] = "STOP file present in the run directory"
+                return
+            try:
+                c, r = next(it)
+            except StopIteration:
+                return
+            pending.add(pool.submit(one, c, r))
+
+    with open(path, "a", encoding="utf-8") as f:
+        refill()
+        while pending:
+            fut = next(as_completed(pending))
+            pending.discard(fut)
+            try:
+                v = fut.result()
+            except Exception as e:                         # noqa: BLE001 - classified, recorded in PAUSED.json
+                stop["reason"] = stop["reason"] or fatal_api_error(e) or \
+                    f"call failed after retries: {type(e).__name__}: {str(e)[:300]}"
+                continue
             with lock:
                 f.write(json.dumps(v, ensure_ascii=False) + "\n")
                 f.flush()
                 n += 1
                 if n % 250 == 0:
                     print(f"  {n}/{len(todo)}", flush=True)
-    print(f"done: {n} calls -> {path.relative_to(ROOT)}")
+            refill()
+    pool.shutdown(wait=True)
+    recorded = len(done) + n
+    if stop["reason"] is None and recorded < len(work):
+        stop["reason"] = f"checkpoint: --stop-after {a.stop_after}"
+    if stop["reason"] is not None:
+        write_paused(out, reason=stop["reason"], done=recorded, total=len(work),
+                     resume=f"python experiments/run_exp1.py --config {a.config.as_posix()}")
+        print(f"PAUSED after {n} new calls ({recorded}/{len(work)} recorded): {stop['reason']}")
+        return 3
+    print(f"done: {n} calls -> {path}")
     return 0
 
 

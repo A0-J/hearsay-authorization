@@ -21,7 +21,7 @@ if os.name == "nt" and not sys.flags.utf8_mode:   # the benchmark reads its bund
     os.environ["PYTHONUTF8"] = "1"
     sys.exit(subprocess.call([sys.executable, *sys.argv]))
 
-from common import RESULTS, ROOT, openai_client, run_meta  # noqa: E402
+from common import RESULTS, ROOT, fatal_api_error, openai_client, run_meta, write_paused  # noqa: E402
 
 from hearsay.authbench import e2e, exp1  # noqa: E402
 from hearsay.authbench.exp1_tasks import build_tasks  # noqa: E402
@@ -83,10 +83,17 @@ def main() -> int:
         os.environ.setdefault("LITELLM_MODEL", cfg["model"])
         os.environ.setdefault("LITELLM_API_KEY", os.environ["OPENAI_API_KEY"])
     done = 0
+    (out / f"PAUSED-shard{i}of{n}.json").unlink(missing_ok=True)
     for t, side, claim, method, k in mine:
         d = out / "episodes" / t.task_id / side / claim / method / f"r{k}"
-        if (d / "measures.json").exists():
-            continue
+        if (d / "measures.json").exists() and not json.loads((d / "measures.json").read_text(encoding="utf-8")).get("error"):
+            continue                                   # a finished episode; one that ended in an error is rerun
+        if (out / "STOP").exists():
+            write_paused(out, reason="STOP file present in the run directory", done=done, total=len(mine),
+                         resume=f"python experiments/run_e2e.py --config {a.config} --shard {a.shard}")
+            (out / "PAUSED.json").replace(out / f"PAUSED-shard{i}of{n}.json")
+            print(f"[{i}/{n}] PAUSED (STOP file)", flush=True)
+            return 3
         task = load_task(t.task_id)
         registry = e2e.e2e_registry(t, side)
         cl = FakeE2EClient(registry, t.gated_tool) if a.dry_run else client
@@ -103,6 +110,14 @@ def main() -> int:
                              workspace=workspace, context_resolver=e2e.e2e_context)
             m = {**cond, **e2e.measures(t, side, claim, ep), "error": None}
         except Exception as e:                       # recorded, never silently dropped
+            reason = fatal_api_error(e)
+            if reason is not None:                   # retrying cannot help: pause instead of recording a failure
+                workspace.close()
+                write_paused(out, reason=reason, done=done, total=len(mine),
+                             resume=f"python experiments/run_e2e.py --config {a.config} --shard {a.shard}")
+                (out / "PAUSED.json").replace(out / f"PAUSED-shard{i}of{n}.json")
+                print(f"[{i}/{n}] PAUSED: {reason}", flush=True)
+                return 3
             m = {**cond, "error": f"{type(e).__name__}: {str(e)[:500]}"}
         finally:
             workspace.close()

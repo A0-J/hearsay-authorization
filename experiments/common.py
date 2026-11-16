@@ -58,3 +58,28 @@ def git_info() -> dict:
 def run_meta(**extra) -> dict:
     return {"time": datetime.now(timezone.utc).isoformat(), "git": git_info(),
             "python": sys.version.split()[0], **extra}
+
+
+FATAL_MARKERS = ("usage limit", "credit balance", "insufficient_quota", "exceeded your current quota",
+                 "billing", "invalid x-api-key", "invalid api key", "incorrect api key", "authentication",
+                 "permission_denied", "HTTP 401", "HTTP 403")
+
+
+def fatal_api_error(e: BaseException) -> str | None:
+    """A reason if retrying cannot help (usage limit, quota, billing, authentication): the run should pause rather
+    than record failures. Keys are never included in the reason."""
+    text = f"{type(e).__name__}: {e}"
+    low = text.lower()
+    if any(m.lower() in low for m in FATAL_MARKERS):
+        import re
+        return re.sub(r"(sk-[A-Za-z0-9_\-]{6})[A-Za-z0-9_\-]+", r"\1...", text)[:500]
+    return None
+
+
+def write_paused(out, *, reason: str, done: int, total: int, resume: str) -> None:
+    import json
+    (out / "PAUSED.json").write_text(json.dumps({
+        "time": datetime.now(timezone.utc).isoformat(), "reason": reason, "recorded": done, "planned": total,
+        "remaining": total - done, "resume": resume,
+        "note": "every completed call/episode is already saved; rerunning the same command resumes"}, indent=2) + "\n",
+        encoding="utf-8")
