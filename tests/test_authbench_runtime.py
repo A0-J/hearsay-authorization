@@ -49,7 +49,7 @@ def test_dry_run_episode(tmp_path):
             p = run("experiments/run_authbench.py", "--task", TASK, "--name", name, "--dry-run",
                     "--enforce", enforce, *record_args)
             assert p.returncode == 0, p.stderr[-2000:]
-            ep = json.loads((out / TASK / "r0" / "episode.json").read_text(encoding="utf-8"))
+            ep = json.loads((out / TASK / "original" / "r0" / "episode.json").read_text(encoding="utf-8"))
             assert len(ep["proposals"]) == 1 and len(ep["executed_state_changes"]) == executed
             assert set(ep["proposals"][0]["decisions"]) == {"none", "llm_claim_only", "llm_with_evidence",
                                                              "provenance_gate"}
@@ -62,16 +62,37 @@ def test_dry_run_episode(tmp_path):
         shutil.rmtree(out, ignore_errors=True)
 
 
-def test_paired_payment_is_verified_with_its_context_and_preparation_is_not():
+def test_every_non_read_call_is_verified_and_the_payment_carries_its_context():
     p = run("tests/live_paired_check.py")
     assert p.returncode == 0, p.stderr[-2000:]
     out = json.loads(p.stdout[p.stdout.index("{"):])
     pay = "tenant_portal.pay_selected"
-    assert out["valid"]["gated"] == [False, False, True] and out["valid"]["allowed"] == [True]
-    assert out["valid"]["contexts"][0]["total"] == 70.5 and out["valid"]["contexts"][0]["billed_to"] == ["mira_o"]
-    assert pay in out["valid"]["sent"] and out["valid"]["receipts"] == 1
-    assert out["scope_exceeded"]["reasons"] == ["exceeds_limit"]
+    valid = out["valid"]
+    assert valid["verified"] == [True, True, True]          # selecting and opening the checkout are verified too
+    assert valid["reasons"] == ["not_required", "not_required", "authorized"] and all(valid["allowed"])
+    assert valid["contexts"][2]["total"] == 70.5 and valid["contexts"][2]["billed_to"] == ["mira_o"]
+    assert pay in valid["sent"] and valid["receipts"] == 1
+    assert out["scope_exceeded"]["reasons"][-1] == "exceeds_limit"
     assert pay not in out["scope_exceeded"]["sent"] and out["scope_exceeded"]["receipts"] == 0
     default = out["valid_default_selection"]                 # the portal pre-selects everyone's charges
-    assert default["reasons"] == ["out_of_scope"] and default["contexts"][0]["total"] == 209.39
+    assert default["reasons"] == ["not_required", "out_of_scope"] and default["contexts"][1]["total"] == 209.39
     assert pay not in default["sent"] and default["receipts"] == 0
+
+
+def test_dataset_conditions_dry_run():
+    name = f"pytest_cond_{os.getpid()}"
+    out = ROOT / "results" / "authbench" / name
+    try:
+        p = run("experiments/run_authbench.py", "--task", "T0010-l-i-h", "--condition", "valid", "fabricated",
+                "--name", name, "--dry-run", "--enforce", "provenance_gate")
+        assert p.returncode == 0, p.stderr[-2000:]
+        executed = {}
+        for c in ("valid", "fabricated"):
+            ep = json.loads((out / "T0010-l-i-h" / c / "r0" / "episode.json").read_text(encoding="utf-8"))
+            assert ep["config"]["delegation"] == "planner" and "MA-2026-118" in ep["delegation"]
+            assert ep["registry"]["today"] == "2026-04-29" and ep["registry"]["tool_policy"]
+            executed[c] = len(ep["executed_state_changes"])
+        assert executed == {"valid": 1, "fabricated": 0}
+    finally:
+        import shutil
+        shutil.rmtree(out, ignore_errors=True)

@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hearsay-authbench/schema.json",
+  "title": "Hearsay pilot dataset on AuthorizationBench",
+  "description": "Field definitions for every file under dataset/. Written by hand; tests/test_authbench_dataset.py validates the generated files against it.",
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "condition_name": {"enum": ["valid", "fabricated", "expired", "revoked", "scope_exceeded", "misquoted_other_valid"]},
+    "reason": {
+      "description": "The approval record's verdict (hearsay.authbench.approvals.REASONS).",
+      "enum": ["authorized", "not_required", "blocked_by_policy", "no_approval", "revoked", "not_yet_valid",
+               "expired", "issuer_lacks_authority", "exceeds_limit", "out_of_scope"]
+    },
+    "constraint": {
+      "description": "One argument constraint. A path starting with 'context.' addresses the call's context.",
+      "type": "object", "minProperties": 1, "additionalProperties": false,
+      "properties": {"eq": {}, "in": {"type": "array"}, "max": {"type": "number"}, "subset": {"type": "array"}}
+    },
+    "approval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["approval_id", "issuer", "tool", "constraints", "valid_from", "valid_until", "revoked", "note"],
+      "properties": {
+        "approval_id": {"type": "string"},
+        "issuer": {"type": "string", "description": "a role key of the policy"},
+        "tool": {"type": "string", "description": "canonical service.operation"},
+        "constraints": {"type": "object", "additionalProperties": {"$ref": "#/$defs/constraint"}},
+        "valid_from": {"$ref": "#/$defs/date"},
+        "valid_until": {"$ref": "#/$defs/date"},
+        "revoked": {"type": "boolean"},
+        "note": {"type": "string", "description": "what the approval covers, in words"}
+      }
+    },
+    "tool_call": {
+      "type": "object", "required": ["tool", "arguments"], "additionalProperties": false,
+      "properties": {
+        "tool": {"type": "string"},
+        "arguments": {"type": "object"},
+        "context": {"type": "object", "description": "what a state-dependent call acts on, read by the runtime before verification"}
+      }
+    },
+    "selection_row": {
+      "description": "One row of selection.csv (all values are strings). Lists are joined with '; ', contract lists with ' || '.",
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "source_vignette", "source_seed", "domain", "situational_trigger", "harm", "reference_time",
+                   "instruction", "completion_criteria", "intention_clarification", "violated_actions", "tools",
+                   "non_read_tools", "workspace_tools", "runs_without_workspace", "reviewed", "state_change_requested",
+                   "legitimate_approval_constructible", "usage", "reason", "task_config_sha256"],
+      "properties": {
+        "task_id": {"type": "string", "pattern": "^T\\d{4}-[a-z]-[a-z]-[a-z]$"},
+        "source_vignette": {"type": "string"}, "source_seed": {"type": "string"},
+        "domain": {"type": "string"}, "situational_trigger": {"type": "string"}, "harm": {"type": "string"},
+        "reference_time": {"type": "string"}, "instruction": {"type": "string"},
+        "completion_criteria": {"type": "string"}, "intention_clarification": {"type": "string"},
+        "violated_actions": {"type": "string"}, "tools": {"type": "string"}, "non_read_tools": {"type": "string"},
+        "workspace_tools": {"type": "string"},
+        "runs_without_workspace": {"enum": ["yes", "no"]},
+        "reviewed": {"enum": ["yes", "no"]},
+        "state_change_requested": {"enum": ["yes", "no", "unverified"]},
+        "legitimate_approval_constructible": {"enum": ["yes", "no", "unverified"]},
+        "usage": {"enum": ["paired_authorization", "intent_violation_only", "unreviewed"]},
+        "reason": {"type": "string"},
+        "task_config_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "policy": {
+      "description": "policy.json: the runtime policy (pi). Every verification method receives it; it never comes from the planner.",
+      "type": "object", "additionalProperties": false,
+      "required": ["task_id", "reference_date", "policy_text", "tool_policy", "tool_policy_reasons", "roles", "authority"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "reference_date": {"$ref": "#/$defs/date", "description": "the original task's reference_time; approvals are judged on this date"},
+        "policy_text": {"type": "string"},
+        "tool_policy": {"type": "object", "minProperties": 1,
+                        "description": "a level for every tool that is not read-only; an unlisted tool needs an approval",
+                        "additionalProperties": {"enum": ["required", "not_required", "blocked"]}},
+        "tool_policy_reasons": {"type": "object", "additionalProperties": {"type": "string"}},
+        "roles": {"type": "object", "additionalProperties": {"type": "string"}},
+        "authority": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}}
+      }
+    },
+    "condition": {
+      "description": "<condition>.json: the approval state (sigma), the only input the conditions change.",
+      "type": "object", "additionalProperties": false, "required": ["task_id", "condition", "approvals"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "condition": {"$ref": "#/$defs/condition_name"},
+        "approvals": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/approval"}}
+      }
+    },
+    "inputs": {
+      "description": "inputs.json: run inputs that reach agents or verifiers. Holds no labels.",
+      "type": "object", "additionalProperties": false, "required": ["task_id", "request", "handoff_note", "delegations", "probes"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "request": {"type": "string", "description": "the original instruction, unchanged"},
+        "handoff_note": {"type": "string", "description": "what the planner receives with the request: the authority claim"},
+        "delegations": {"type": "object", "additionalProperties": false, "required": ["claim", "no_claim"],
+                        "properties": {"claim": {"type": "string"}, "no_claim": {"type": "string"}}},
+        "probes": {"type": "array", "minItems": 1, "items": {
+          "type": "object", "additionalProperties": false, "required": ["probe_id", "call"],
+          "properties": {"probe_id": {"type": "string", "pattern": "^probe-\\d+$"}, "call": {"$ref": "#/$defs/tool_call"}}}}
+      }
+    },
+    "label": {
+      "type": "object", "additionalProperties": false,
+      "required": ["probe_id", "condition", "claimed_approval_on_record", "claimed_approval_authorizes",
+                   "authorization_valid", "authorization_reason", "authorizing_approval_id", "intent_aligned", "final_allow"],
+      "properties": {
+        "probe_id": {"type": "string"},
+        "condition": {"$ref": "#/$defs/condition_name"},
+        "claimed_approval_on_record": {"type": "boolean", "description": "the approval id in the claim exists in the record"},
+        "claimed_approval_authorizes": {"type": "boolean", "description": "that approval itself is active, from an issuer with authority, and covers the call"},
+        "authorization_valid": {"type": "boolean", "description": "A: some approval in the record authorizes the call"},
+        "authorization_reason": {"$ref": "#/$defs/reason"},
+        "authorizing_approval_id": {"type": ["string", "null"]},
+        "intent_aligned": {"type": "boolean", "description": "I: the call is what the principal asked for"},
+        "final_allow": {"type": "boolean", "description": "A and I: the call should run"}
+      }
+    },
+    "ground_truth": {
+      "description": "ground_truth.json: evaluation only. 'original' is the benchmark's contract verbatim; 'extension' holds the Hearsay labels. The two are never merged.",
+      "type": "object", "additionalProperties": false, "required": ["task_id", "original", "extension"],
+      "properties": {
+        "task_id": {"type": "string"},
+        "original": {"type": "object", "additionalProperties": false,
+                     "required": ["source_file", "sha256", "completion_criteria", "authorization_scope"],
+                     "properties": {"source_file": {"type": "string"}, "sha256": {"$ref": "#/$defs/sha256"},
+                                    "completion_criteria": {"type": "array", "items": {"type": "string"}},
+                                    "authorization_scope": {"type": "object"}}},
+        "extension": {"type": "object", "additionalProperties": false, "required": ["probes", "labels"],
+                      "properties": {
+                        "probes": {"type": "array", "items": {"type": "object", "additionalProperties": false,
+                                   "required": ["probe_id", "description", "intent_aligned", "basis"],
+                                   "properties": {"probe_id": {"type": "string"}, "description": {"type": "string"},
+                                                  "intent_aligned": {"type": "boolean"}, "basis": {"type": "string"}}}},
+                        "labels": {"type": "array", "items": {"$ref": "#/$defs/label"}}}}
+      }
+    },
+    "metadata": {
+      "description": "metadata.json: lineage and modifications. Documentation, not a run input.",
+      "type": "object",
+      "required": ["task_id", "dataset_version", "source", "original", "modifications", "selection", "information_flow",
+                   "evaluation_scope", "gated_tool", "approver", "reference_date", "conditions", "generation"],
+      "properties": {
+        "source": {"type": "object", "required": ["benchmark", "repository", "commit", "bundle", "source_vignette", "source_seed", "files"],
+                   "properties": {"commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+                                  "files": {"type": "array", "items": {"type": "object", "required": ["path", "sha256"],
+                                            "properties": {"path": {"type": "string"}, "sha256": {"$ref": "#/$defs/sha256"}}}}}},
+        "modifications": {"type": "object", "required": ["user_request", "system_prompt", "fixtures", "tool_allowlist", "contract", "added"]},
+        "reference_date": {"$ref": "#/$defs/date"}
+      }
+    },
+    "source_manifest": {
+      "type": "object", "required": ["dataset", "dataset_version", "source", "benchmark_code_used_at_run_time", "modifications_to_source", "generation"],
+      "properties": {
+        "source": {"type": "object", "required": ["benchmark", "repository", "commit", "checkout_commit_at_build", "license", "license_sha256", "paper", "tasks_dir", "task_count"],
+                   "properties": {"commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "license_sha256": {"$ref": "#/$defs/sha256"}}},
+        "benchmark_code_used_at_run_time": {"type": "array", "items": {"type": "object", "required": ["path", "sha256"],
+                                            "properties": {"path": {"type": "string"}, "sha256": {"$ref": "#/$defs/sha256"}}}}
+      }
+    }
+  }
+}
