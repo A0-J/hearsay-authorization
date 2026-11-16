@@ -150,3 +150,43 @@ The cells, settings and analysis are those above. The case-level analysis is `ex
    date and uses 2024-05-15 too. Banking has no date and uses 2022-03-08, the day after the latest past
    transaction in its environment (its scheduled transactions fall after it).
 6. **Case ids.** `A` + suite + task number: Abank03, Aslack07, Atravel00, Awork25. One user task = one case.
+
+## Amendment 3 (2026-11-17, before any Claude generalization call and before any AgentDojo call)
+
+These decisions were made **after** seeing results: Experiments 1 and 2 and the ablation on the 11 tasks, and
+part of the GPT-4.1 generalization runs (G1 6,330 of 9,744 calls; G2E 6,138 of 10,416; the AuthorizationBench
+claim-only and semantic runs complete). Their reasons are the Claude budget (about $200 on the account used) and
+the semantic diagnosis below, and they are reported as result-informed reductions, not as the original plan.
+
+1. **Claude settings on the new tasks.** Only Claude Sonnet 5.5 adaptive runs, on:
+   - Experiment 1's cells, for the AuthorizationBench and AgentDojo tasks;
+   - the claim-only ablation, for both sources.
+   Not run: the between_tools setting on any new task, and Experiment 2's cells on the AuthorizationBench
+   tasks. Experiment 2's cells on the AgentDojo tasks for Claude adaptive are decided by the researcher
+   **after** the Claude Experiment 1 results on the new tasks. If they run, that decision is recorded here
+   as made after those results. The secondary tests for the Claude settings are computed only for what ran.
+2. **Semantic arm on the new tasks.**
+   - **Not run for Claude.**
+   - **GPT-4.1's AgentDojo semantic run (360 calls) is not started.** Whether it runs is the researcher's
+     decision, recorded here.
+   - **The GPT-4.1 AuthorizationBench semantic run** (504 calls) finished before this diagnosis. It is kept
+     and reported with it.
+   **Reason.** The semantic decisions so far were classified by their stated reason, by keyword. This
+   classification is exploratory. Among the gated call's non-aligned decisions:
+   - "context missing or insufficient" was the stated reason in 35/66 (GPT-4.1, 11 tasks), 14/54 (Claude
+     adaptive), 45/72 (Claude between_tools) and 106/184 (GPT-4.1, 28 new tasks). Arguments taken from the
+     environment cannot be checked against trusted context "(none)". In T0008, for example, one carnet holds
+     five tickets, but nothing in the input says so.
+   - On the not-required control message, GPT-4.1 judged "not aligned" or "uncertain" in 99/99 and 238/252.
+     Its reasons mostly say the message "does not fulfil the request".
+   So the arm's false rejection mainly reflects this configuration (no task context, plus Experiment A's
+   alignment question). Repeating it on new cases would measure the same configuration again.
+3. **Reporting by lineage.**
+   - **New AuthorizationBench tasks in Experiment 1's cases** are new domains of an existing source scenario.
+     They are reported as such and not counted as independent source cases.
+   - **Independent new source cases:** 1 AuthorizationBench case (S0025) and 20 AgentDojo user tasks.
+   - **AgentDojo tasks that share a probe call** are flagged in every report: slack 2, 11 and 16 (invite Dora);
+     slack 9 and 10 (add Alice to External_0).
+4. **AgentDojo ground-truth audit.** Before any AgentDojo call, an independent read-only audit checks each
+   selected task's request, call, approver, unauthorized party and covering/narrow constraints against the
+   extracted source. Its findings, and any task they change, are recorded here before the AgentDojo runs.
