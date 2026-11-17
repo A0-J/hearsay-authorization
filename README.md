@@ -1,97 +1,94 @@
 # Hearsay Is Not Authorization
 
-Evidence-grounded verification of inherited authorization claims in multi-agent delegation
-(a DualFlow follow-up).
+In a multi-agent delegation, an upstream agent tells a downstream agent that an action is authorized, or
+that its approval was withdrawn. An LLM verifier then decides whether the action may run. This project
+measures whether such **unverified claims change the verifier's decision even when the verifier also sees
+the independent approval records** (the policy and the approval system's state).
 
-An upstream agent tells a downstream agent that a task is authorized. The downstream agent cannot
-see whether that is true. This project puts real tool-using agents in that position, lets the claim
-and the independent approval record disagree, and measures what actually gets executed under five
-verification methods: none, an LLM verifier with the claim only, an LLM verifier with the record as
-evidence, a provenance-checking authorization gate, and a DualFlow-style semantic + provenance gate.
-Both sides are measured: unauthorized execution, and legitimate standing approvals wrongly blocked.
+Status: 2026-11-17. The research is in progress and experiments are paused while the next step is planned.
+Full index of experiments, runs and outputs: **[docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)**.
 
-The design, conditions, measures and hypotheses are in [PLAN.md](PLAN.md).
+## Main findings so far
 
-## Layout
+All values are differences in approval rate (percentage points), with 95% bootstrap intervals over tasks or
+cases. Details and tests are in each run's `analysis/REPORT.md`.
 
-| path | what |
+| finding | evidence | status |
+|---|---|---|
+| **A withdrawal claim overrides valid records.** "The approval was withdrawn" lowers approval of calls that valid, complete records authorize. | 11 tasks, evidence-aware: GPT-4.1 −82.6 [−93.2, −72.0]; gpt-4o −75.0; gpt-4.1-mini −60.6; Claude Sonnet 4.6 −47.0; gpt-5.5, Claude Haiku 5.5 and Claude Sonnet 5.5 (thinking on or off) ≈ 0 | secondary in Experiment 1 (H5); confirmed as a primary test in Experiment 2 (P1) |
+| It replicates on independent tasks (GPT-4.1) | AuthorizationBench new tasks −79.3 [−88.2, −67.5] (8 cases); AgentDojo −85.5 [−92.5, −77.6] (19 cases) | pre-registered primary (G1) |
+| **Asymmetry.** Approval claims barely move invalid evidence. | positive claims on invalid evidence: +0.7 (11 tasks), +0.7 (AB new), +1.9 (AgentDojo); asymmetry S1 +93 to +100 | H1–H3 (Experiment 1 primary) not supported |
+| Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97) | Experiment 2, pre-registered reading rules |
+| The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6) | model panel |
+| With a DEFER option (GPT-4.1) | a withdrawal claim → 100% defer, 0% reject; a 5.5-hour-old snapshot without a claim → 100% approve (normative: defer) | exploratory, descriptive |
+| Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted up to 48% (GPT-4.1, AgentDojo) and recorded as the decision basis | results/invalid-approvals/ |
+
+Not established yet:
+- whether the effect generalizes to independent tasks for models other than GPT-4.1;
+- end-to-end harm (Experiment 3 is paused at 301 of 792 episodes; see the design audit);
+- the error-cause coding, which is model-assisted and still awaits the human check;
+- the mitigation experiment, which is a draft pre-registration with no runs.
+
+## Where to look
+
+| what | where |
 |---|---|
-| `src/hearsay/scenarios.py` | 8 base tasks × 8 claim/record conditions = 64 scenarios |
-| `src/hearsay/records.py` | approval records, issuer authority, the provenance gate (ground-truth semantics) |
-| `src/hearsay/agent_loop.py` | tool-using agent on the OpenAI Responses API (function calling, multi-turn) |
-| `src/hearsay/sandbox.py` | the executor's tools as mock services; state-changing calls pass the guard |
-| `src/hearsay/guards.py` | the five verification methods |
-| `src/hearsay/episode.py` | coordinator agent → executor agent → sandbox; outcome from executed effects |
-| `src/hearsay/prompts.py` | every instruction the agents and verifiers receive |
-| `src/hearsay/fake.py` | a fake client for dry runs and tests (0 API calls) |
-| `experiments/run.py`, `analyze.py` | collection (parallel, resumable) and tables |
+| Experiment index (IDs, runs, status, outputs) | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) |
+| Pre-registrations (frozen before data; amendments appended) | `docs/*_PREREG.md` (listed in the index) |
+| Related work and how this study differs | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) |
+| Figures (PNG) | `results/E1-figures/png/`, `results/E2-figures/png/`, `results/generalization-figures/png/` |
+| Per-run analysis | `results/<run-id>/analysis/REPORT.md`, `tests.json` |
+| Cross-run analyses | `results/ablation-*/`, `results/error-stages/`, `results/invalid-approvals/`, `results/h3-completeness/`, `results/E3-checks/`, `results/m-design/` |
+| Raw results (not in git) | `archives/` zips, with SHA-256 in [results/registry.json](results/registry.json) |
+| Datasets (frozen cells and labels) | [dataset/](dataset/README.md): `exp1`, `exp2`, `exp2_defer`, `ablation_*`, `*_gen` (new AuthorizationBench tasks), `*_ad` (AgentDojo) |
+| Code | `src/hearsay/authbench/` (cells, evidence rendering, verifiers, gate, E2E runtime); `experiments/` (build, run, analyze, figures) |
 
-## Running
+## How to run
 
 ```bash
-pip install -e .[dev]
-python -m pytest                                                     # 0 API calls
-
-PYTHONPATH=src python experiments/run.py --dry-run --workers 4        # whole pipeline, fake client
-PYTHONPATH=src python experiments/analyze.py results/dry_run
-
-# real agents: put the key in openai_api_key.txt (gitignored) or set OPENAI_API_KEY
-PYTHONPATH=src python experiments/run.py --name pilot --workers 8
-PYTHONPATH=src python experiments/analyze.py results/pilot
-```
-
-Useful options: `--methods`, `--conditions`, `--bases`, `--repeats`, `--executors gpt-4o-mini gpt-4.1`,
-`--delegation scripted` (fixed claim text, no coordinator agent), `--record-lookup` (the executor can
-query the approval system), `--resume` (re-run errored episodes only).
-
-Each episode in `results/<name>/episodes.jsonl` keeps every model output, tool call, guard decision
-and verifier vote.
-
-## AuthorizationBench runtime (in progress)
-
-The runtime is moving onto original [AuthorizationBench](https://github.com/PEACH-Research-Lab/AuthorizationBench)
-tasks and the benchmark's own HTTP services; see PLAN.md §9 for the design and its status.
-
-| path | what |
-|---|---|
-| `src/hearsay/authbench/task.py` | a task bundle: instruction, sealed prompt, blueprint tool allowlist |
-| `src/hearsay/authbench/runtime.py` | environment, the router every executor call goes through, one episode |
-| `src/hearsay/authbench/calls.py` | which business calls change state (and pass the verifier) |
-| `src/hearsay/authbench/approvals.py` | the independent approval record |
-| `src/hearsay/authbench/verify.py` | verification methods, all judging the same proposal (shadow) |
-| `src/hearsay/authbench/selfcheck.py` | blocked calls never reach the service (live check, 0 API calls) |
-| `src/hearsay/authbench/paired.py` | the dataset spec: selected tasks, policy, claim, probes, six approval conditions |
-| `src/hearsay/authbench/dataset.py` | reading the dataset at run time (ground truth only for evaluation) |
-| [`dataset/`](dataset/README.md) | the Hearsay pilot dataset: lineage, selection of all 286 tasks, policy, approval states, labels |
-| `src/hearsay/authbench/verifier_only.py`, `evaluate.py` | Experiment A: probe calls × with/without the claim × approval states × methods; scoring against the labels |
-| `configs/experiment_a.json`, `experiments/run_verifier_only.py` | Experiment A's pinned settings (model, sampling, votes, prompt fingerprints) and its runner |
-| [`docs/EXPERIMENT1_DESIGN.md`](docs/EXPERIMENT1_DESIGN.md), [`docs/RELATED_WORK.md`](docs/RELATED_WORK.md) | the next experiment (evidence states, Claim Non-Amplification) and how it differs from prior work |
-| `experiments/prescreen_tasks.py`, `docs/screening/` | mechanical pre-screen of all 286 tasks by action type and seed |
-| `experiments/summary_probes.py`, `dataset/authoring/summary_probes/` | researcher-written summary probes: templates, minimal-pair check, blind two-reviewer agreement |
-| [`docs/EXPERIMENT1_PREREG.md`](docs/EXPERIMENT1_PREREG.md), [`dataset/exp1/`](dataset/exp1/README.md) | Experiment 1 run 1: pre-registration and its frozen dataset (11 new source cases, 1,276 cells) |
-| `src/hearsay/authbench/exp1.py`, `exp1_tasks.py` | Experiment 1 cells (claims, evidence conditions, controls) and the selected tasks with the review |
-| `experiments/build_exp1.py`, `run_exp1.py`, `analyze_exp1.py` | build the dataset; run it (resumable, raw replies kept); the pre-registered analysis |
-| `src/hearsay/anthropic_client.py` | Claude models through the same interface (for the replication) |
-| `experiments/run_authbench.py`, `replay_verifiers.py` | episodes; re-judging saved proposals |
-
-```bash
-python experiments/fetch_authbench.py                 # clone the benchmark at the pinned commit
 pip install -e .[dev,authbench]
-# Windows: set PYTHONUTF8=1 (the benchmark reads its UTF-8 bundles with the default encoding)
-python -m hearsay.authbench.selfcheck --task T0010-l-b-h
-python experiments/run_authbench.py --task T0010-l-b-h --dry-run      # 0 API calls
-python experiments/run_authbench.py --task T0010-l-b-h --name smoke   # gpt-4.1 for every role
-python experiments/build_dataset.py                  # regenerate dataset/ from the spec
-python experiments/run_authbench.py --task T0007-a-g-h --condition valid fabricated --dry-run
-python experiments/run_verifier_only.py --config configs/experiment_a.json --plan      # count LLM calls
-python experiments/run_verifier_only.py --config configs/experiment_a.json --dry-run   # 0 API calls
-python experiments/run_verifier_only.py --config configs/experiment_a_smoke.json   # 75 real calls: parsing check
-python experiments/run_verifier_only.py --config configs/experiment_a_pilot.json   # Experiment A run 1 (891 calls)
-python experiments/score_run.py results/A-pilot-v2      # recompute every report from verdicts.jsonl
-python experiments/archive_run.py results/A-pilot-v2 --label "..."   # zip + SHA-256 into results/registry.json
-python experiments/run_exp1.py --config configs/exp1_gpt41.json --plan   # Experiment 1: 3,828 calls
-python experiments/analyze_exp1.py results/E1-gpt-4.1-run1               # tables, tests, PNG plots, REPORT.md
+python experiments/fetch_authbench.py            # AuthorizationBench at the pinned commit
+python -m pytest                                 # 0 API calls
+# Windows: set PYTHONUTF8=1
+
+# verifier-only experiments (Experiments 1 and 2, panel, generalization, ablation): one config per run
+python experiments/run_exp1.py --config configs/exp1_gpt41.json --plan      # counts and token estimate
+python experiments/run_exp1.py --config configs/exp1_gpt41.json --dry-run   # fake client, 0 calls
+python experiments/run_exp1.py --config configs/exp1_gpt41.json             # real calls; resumable, pause-safe
+
+# analysis (no API calls)
+python experiments/analyze_exp1.py results/E1-gpt-4.1-run1        # Experiment 1 and panel cells
+python experiments/analyze_exp2.py results/E2-gpt-4.1-run1        # Experiment 2 (and DEFER mode)
+python experiments/analyze_gen.py  results/G1-gpt-4.1-run1        # generalization, case level
+python experiments/analyze_ablation.py --help                     # verification-method ablation
+python experiments/figures_exp1.py ; python experiments/figures_exp2.py ; python experiments/figures_gen.py
+
+# raw results stay out of git
+python experiments/archive_run.py results/<run-id> --label "..."   # zip + SHA-256 into results/registry.json
 ```
 
-Only tasks without workspace tools run so far (10 of 286); the rest need the benchmark's Docker
-agent container, which is not wired yet.
+API keys are read from `openai_api_key.txt` and `anthropic_api_key.txt` (both gitignored) or from the
+environment.
+
+A run pauses instead of failing:
+- on a quota, billing or authentication error;
+- on a `STOP` file in its directory;
+- at `--stop-after N`.
+
+It then writes `PAUSED.json`, and rerunning the same command resumes it.
+
+## Working rules
+
+- Pre-register before data. Changes go in dated amendments, never as silent edits.
+- Never pool models, settings or task sets. The unit of analysis is the task or case, never the call.
+- Report every result, including nulls and paused runs. A post-hoc result is labelled as post hoc.
+- The provenance gate defines the labels, so its zero error is by construction and is not a finding.
+- `semantic_provenance_direct` is a simplified variant of DualFlow, not DualFlow itself.
+
+## Earlier stages
+
+These are kept for the record and are not the current main line:
+- the first mock-service sandbox (`src/hearsay/scenarios.py`, `experiments/run.py`; 64 scenarios);
+- Experiment A, the pilot verifier-only run (`configs/experiment_a*.json`, `results/A-*`; 891 calls).
+
+Their design is in [PLAN.md](PLAN.md) and [docs/RESEARCH_PROGRAM.md](docs/RESEARCH_PROGRAM.md).
