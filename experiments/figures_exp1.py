@@ -8,7 +8,8 @@ INDEX.md. Models are never pooled. Conventions follow experiments/analyze_exp1.p
 its repeats per task, the task is the unit, a rate is the mean over tasks and its 95% interval is a
 bootstrap over tasks (10,000 resamples, seed 0; analyze_exp1.stat).
 
-The one hand-written input is results/E1-figures/manual_check_gpt-4.1.csv (cell_id, repeat, manual_check,
+The one hand-written input (written by the assistant, Claude Opus 5.5, not by a person; corrected 2026-11-17)
+is results/E1-figures/manual_check_gpt-4.1.csv (cell_id, repeat, manual_check,
 manual_note): a reading of every incorrect GPT-4.1 call after the rules below were applied. This script
 never writes it; it only merges it into Table 4.
 
@@ -465,7 +466,7 @@ def main() -> None:
          "| tables/claim_mentions_negative_aware.csv | Evidence-aware negative-claim calls: how many reasons match "
          "the CLAIM_REF keyword rule, by condition and decision, with per-keyword counts (descriptive only) | both "
          "runs | 132 calls per model (33 per condition) |", "",
-         "Hand-written input: `manual_check_gpt-4.1.csv` (one row per incorrect GPT-4.1 call: agree/disagree with "
+         "Hand-written input (written by the assistant, Claude Opus 5.5, not by a person; label corrected 2026-11-17): `manual_check_gpt-4.1.csv` (one row per incorrect GPT-4.1 call: agree/disagree with "
          "the rule-based category and a one-line note). The script merges it into Table 4 and never writes it.", ""]
 
     def f3(x):

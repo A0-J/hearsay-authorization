@@ -14,8 +14,13 @@ other's codes, the rule-based stages or the manual samples. This script:
         evidence_misread              evidence_reading = incorrect
         read_correctly_decided_wrong  evidence_reading = correct (sub-label: driver)
         claim_without_reading         evidence_reading = not_stated (sub-label: driver)
-     and compares it with the first author's manual stages of the two manual samples (third reference);
+     and compares it with the manual stages of the two manual samples (third reference);
   4. writes coded_final.csv, agreement.json and REPORT_agreement.md.
+
+WHO CODED (corrected 2026-11-17): no person has coded these rows. Coders A and B were separate subagent instances
+of the same Claude model as the assistant (Claude Opus 5.5); the adjudication and the "manual" samples
+(manual_sample*.csv) were written by the assistant itself. Agreement here is agreement between instances of one
+model: it measures consistency, not validity. A human check is prepared separately (results/error-stages/human-check/).
 """
 
 from __future__ import annotations
@@ -115,7 +120,7 @@ def main() -> None:
         w.writeheader()
         w.writerows(final)
 
-    # third reference: the first author's manual stages (manual_sample*.csv), matched on cell and repeat
+    # third reference: the assistant's manual stages (manual_sample*.csv; Claude, not a person), matched on cell/repeat
     coded = read(D / "errors_coded.csv")
     key_of = {str(n): (r["experiment"], r["setting"], r["cell_id"], str(r["repeat"])) for n, r in enumerate(coded)}
     fin = {key_of[f["row_id"]]: f["final_stage"] for f in final}
@@ -146,8 +151,13 @@ def main() -> None:
     for g, v in agree["by_setting_experiment"].items():
         md.append(f"| {g} (n={v[DIMS[0]]['n']}) | " + " | ".join(f"{v[d]['kappa']} ({v[d]['raw']})" for d in DIMS) + " |")
     mv = agree["manual_vs_final"]
-    md += ["", f"Final stage vs the first author's manual stage (manual samples): n = {mv['n']}, raw agreement "
+    md += ["", f"Final stage vs the manual stage of the two manual samples: n = {mv['n']}, raw agreement "
            f"{mv['raw']}, kappa {mv['kappa']}. Unresolved disagreements: {unresolved}.", "",
+           "**Who coded.** No person has coded these rows. Coders A and B were separate subagent instances of the "
+           "same Claude model as the assistant (Claude Opus 5.5), each blind to the other. The adjudication and the "
+           "manual samples were written by the assistant. The kappas above are agreement between instances of one "
+           "model (consistency), not validity, and the manual-sample comparison is not a human reference. A human "
+           "check is prepared in human-check/.", "",
            "## Final stages", "", "| experiment | setting | stage | n | of errors | driver |", "|---|---|---|---|---|---|"]
     for (e, s, st), n in sorted(counts.items()):
         md.append(f"| {e} | {s} | {st} | {n} | {tot[(e, s)]} | "

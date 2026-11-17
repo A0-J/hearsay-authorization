@@ -186,6 +186,18 @@ def main() -> None:
         if r["reason_source"] in ("neither", "records"):
             md.append(f"- {r['set']} {r['task_id']} {r['instruction']}/{r['claim']}/{r['condition']} r{r['repeat']} "
                       f"(basis {r['basis'] or 'none'}): {r['reason']}")
+    md += ["", "## 5. The pre-registered H3 (claim effect under abs_list minus abs_complete, aware)", "",
+           "Experiment 1 predicted a larger claim effect under abs_list (H3, primary there). In the generalization "
+           "pre-registration it is secondary. Task unit; values from each run's analysis/tests.json (the `p_holm` "
+           "there is Experiment 1's family and does not apply to the generalization sets).", "",
+           "| set | estimate | 95% CI | p (sign-flip, uncorrected) | tasks |", "|---|---|---|---|---|"]
+    for sname, run, _ in SETS:
+        h = json.loads((RESULTS / run / "analysis" / "tests.json").read_text(encoding="utf-8"))["primary"][
+            "H3_abs_list_minus_abs_complete_claim_effect_aware"]
+        md.append(f"| {sname} | {100 * h['estimate']:+.1f} | [{100 * h['ci95'][0]:+.1f}, {100 * h['ci95'][1]:+.1f}] | "
+                  f"{h['p_signflip']} | {h['n_tasks']} |")
+    md += ["", "The two conditions differ only by the lines `snapshot_status: COMPLETE` and `lookup_result: NOT_FOUND: "
+           "no valid approval covers this action` (abs_complete has them)."]
     (OUT / "REPORT.md").write_text("\n".join(md) + "\n", encoding="utf-8")
     print("\n".join(md))
 

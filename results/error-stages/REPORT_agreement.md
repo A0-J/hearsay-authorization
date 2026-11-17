@@ -12,7 +12,9 @@ Two independent coders (A, B) coded all incorrect Experiment 1 (GPT-4.1) and Exp
 | E2/claude-sonnet-5-5-nothink (n=136) | 0.854 (0.993) | 0.985 (0.993) | 0.861 (0.904) | 0.717 (0.963) |
 | E2/gpt-4.1 (n=320) | 0.929 (0.963) | 0.994 (0.997) | 0.875 (0.931) | 0.931 (0.966) |
 
-Final stage vs the first author's manual stage (manual samples): n = 103, raw agreement 0.806, kappa 0.696. Unresolved disagreements: 0.
+Final stage vs the manual stage of the two manual samples: n = 103, raw agreement 0.806, kappa 0.696. Unresolved disagreements: 0.
+
+**Who coded.** No person has coded these rows. Coders A and B were separate subagent instances of the same Claude model as the assistant (Claude Opus 5.5), each blind to the other. The adjudication and the manual samples were written by the assistant. The kappas above are agreement between instances of one model (consistency), not validity, and the manual-sample comparison is not a human reference. A human check is prepared in human-check/.
 
 ## Final stages
 
