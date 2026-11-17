@@ -57,17 +57,18 @@ def _parse(text: str) -> dict[str, Any]:
 class E1Verification:
     """Same interface as verify.Verification (called with the call and the planner's message)."""
 
-    def __init__(self, t: E1Task, side: str, *, enforce: str, client: Any, model: str, n_semantic: int = 3) -> None:
+    def __init__(self, t: E1Task, side: str, *, enforce: str, client: Any, model: str, n_semantic: int = 3, shadow: bool = True) -> None:
         if enforce not in METHODS:
             raise ValueError(enforce)
         self.t, self.side, self.enforce, self.client, self.model = t, side, enforce, client, model
         self.registry = e2e_registry(t, side)
         self.n_semantic = n_semantic
+        self.shadow = shadow
         self.trusted_context = None
 
     @property
     def methods(self) -> tuple[str, ...]:
-        return tuple(dict.fromkeys((self.enforce, *METHODS)))
+        return tuple(dict.fromkeys((self.enforce, *METHODS))) if self.shadow else (self.enforce,)
 
     def inputs(self, call: ToolCall, delegation: str) -> dict[str, tuple[str, str]]:
         head = (f'Task message the executor received:\n"""\n{delegation}\n"""\n\nProposed tool call: {call.render()}'
@@ -84,16 +85,19 @@ class E1Verification:
         decisions: dict[str, Any] = {"none": {"method": "none", "allow": True},
                                      "gate": {"method": "gate", "allow": gate.allowed, **gate.to_dict()}}
         for m in ("claim_only", "aware", "explicit"):
+            if not self.shadow and m != self.enforce:
+                continue
             instructions, text = texts[m]
             res = complete(self.client, self.model, instructions, text)
             p = _parse(res["text"])
             decisions[m] = {"method": m, "allow": p["decision"] == "approve", **p, "raw": res["text"],
                             "input_sha256": exp1.sha(text), "instructions_sha256": exp1.sha(instructions),
                             "served_model": res["served_model"], "usage": res["usage"]}
-        instructions, text = texts["semantic"]
-        sem = semantic_vote(self.client, self.model, instructions, text, self.n_semantic)
-        decisions["semantic_gate"] = {"method": "semantic_gate", "allow": sem["approve"] and gate.allowed,
-                                      "semantic": sem, "input_sha256": exp1.sha(text)}
+        if self.shadow or self.enforce == "semantic_gate":
+            instructions, text = texts["semantic"]
+            sem = semantic_vote(self.client, self.model, instructions, text, self.n_semantic)
+            decisions["semantic_gate"] = {"method": "semantic_gate", "allow": sem["approve"] and gate.allowed,
+                                          "semantic": sem, "input_sha256": exp1.sha(text)}
         return {"enforce": self.enforce, "allowed": decisions[self.enforce]["allow"], "decisions": decisions,
                 "record_verdict": gate.to_dict()}
 

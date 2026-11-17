@@ -267,7 +267,8 @@ def unexplained_changes(before: dict, after: dict, events: list[dict[str, Any]])
 
 def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry: ApprovalRegistry,
                 trusted_context: str | None = None, out_dir: Path | None = None, verification: Any = None,
-                workspace: Any = None, context_resolver: Callable[..., dict[str, Any]] | None = None) -> dict[str, Any]:
+                workspace: Any = None, context_resolver: Callable[..., dict[str, Any]] | None = None,
+                planner_override: Callable[..., dict[str, Any]] | None = None) -> dict[str, Any]:
     """`verification` replaces the default Verification (Experiment 3 uses Experiment 1's verifier formats);
     `workspace` gives the executor a local stand-in for the benchmark's workspace tools."""
     if task.needs_workspace and not config.allow_missing_workspace and workspace is None:
@@ -281,7 +282,8 @@ def run_episode(task: AuthBenchTask, config: RunConfig, *, client: Any, registry
         state_before = env.state()
         planner = None
         if config.delegation == "planner":
-            planner = plan(client, config.role_model("planner"), task, config.handoff_note)
+            planner_fn = planner_override or plan
+            planner = planner_fn(client, config.role_model("planner"), task, config.handoff_note)
             delegation = planner["message"]
             executor_input = EXECUTOR_PLANNER_FRAME.format(message=delegation)
         else:
