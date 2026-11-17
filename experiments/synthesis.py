@@ -937,6 +937,9 @@ def main() -> None:
     stale = {m: [fk[(m, i, "stale_valid", c)]["approve"] for i in ("aware_tristate", "explicit_tristate")
                  for c in ("none", "approved")] for m, _ in E2D_RUNS}
     g4o = next(r for r in prof if r["model"] == "gpt-4o")["forged_aware"]
+    _g2 = json.loads((RES / "AD1-gpt-4.1-run1" / "analysis" / "agentdojo_subsets.json").read_text(
+        encoding="utf-8"))["primary"]["G2"]
+    g2ad = f"{ci(_g2)} pp, Holm p = {_g2['p_holm_primary_pair']:.2g}"
     L += ["## 1. Risk map", "",
           "| # | risk | trigger (one upstream sentence) | GPT-4.1, evidence-aware: 11 tasks / AB new / AgentDojo | "
           "what removes it | status |", "|---|---|---|---|---|---|",
@@ -949,7 +952,7 @@ def main() -> None:
           "records | " + " / ".join(r["forged_calls"] for r in aw) + " calls on ID-absent cells; on the complete "
           "lookup alone: " + " / ".join(r["forged_abs_complete_calls"] for r in aw) + f"; gpt-4o on the 11 tasks: "
           f"{g4o[0]}/{g4o[1]} | the evidence-explicit instruction (GPT-4.1, gpt-4o); the provenance gate (by "
-          "construction) | H |",
+          f"construction) | H for the ID-absent cells; in AgentDojo it drives the pre-registered G2 ({g2ad}) |",
           "| R3 | **stale approval used** (freshness) | none needed: a 5.5-hour-old snapshot under a 2-hour rule | "
           f"approved in {rng(stale['GPT-4.1'])} of calls (11 tasks; no claim or an approval claim; both "
           f"instructions); Claude Sonnet 5.5: {rng(stale['Claude Sonnet 5.5, thinking'])} with thinking, "
@@ -984,7 +987,9 @@ def main() -> None:
                  f"{pct(r['invalid_generic_positive'])}% | {pct(r['invalid_forged_id'])}% ({r['forged_calls']}) |")
     L += ["", "Status: the withdrawal effect is P on all three sets (E2 P1, G1 primary). The forged-ID column is H: "
           "the `specific` claim was pre-registered, but singling out the ID-absent cells came after the AgentDojo "
-          "result (results/invalid-approvals/).", ""]
+          "result (results/invalid-approvals/). The pre-registered G2 (all approval claims on invalid evidence, "
+          f"case level) is {g2ad} in AgentDojo and not significant on AB new; in AgentDojo the generic claims "
+          "contribute 0, so G2 there is the specific-ID effect (results/synthesis/EVIDENCE_MAP.md, F2).", ""]
 
     L += ["## 3. Model dependence (same 11 tasks, identical inputs)", "", f"![model profile]({f2})", "",
           "| model setting | withdrawal effect, aware | withdrawal effect, explicit | forged ID accepted, aware | "

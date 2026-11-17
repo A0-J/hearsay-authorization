@@ -7,7 +7,8 @@ the independent approval records** (the policy and the approval system's state).
 
 Status: 2026-11-17. The research is in progress and experiments are paused while the next step is planned.
 Start here: **[results/synthesis/REPORT.md](results/synthesis/REPORT.md)** has the risk map, the comparisons, the
-figures and representative cases in one place.
+figures and representative cases in one place. For writing up, **[results/synthesis/EVIDENCE_MAP.md](results/synthesis/EVIDENCE_MAP.md)**
+links each finding to its tests, numbers, limits, figures and sources.
 Full index of experiments, runs and outputs: **[docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)**.
 
 ## Main findings so far
@@ -19,7 +20,7 @@ cases. Details and tests are in each run's `analysis/REPORT.md`.
 |---|---|---|
 | **A withdrawal claim overrides valid records.** "The approval was withdrawn" lowers approval of calls that valid, complete records authorize. | 11 tasks, evidence-aware: GPT-4.1 −82.6 [−93.2, −72.0]; gpt-4o −75.0; gpt-4.1-mini −60.6; Claude Sonnet 4.6 −47.0; gpt-5.5, Claude Haiku 5.5 and Claude Sonnet 5.5 (thinking on or off) ≈ 0 | secondary in Experiment 1 (H5); confirmed as a primary test in Experiment 2 (P1), which re-samples the same inputs |
 | It replicates on new tasks (GPT-4.1) | AuthorizationBench new tasks −79.3 [−88.2, −67.5] (8 cases: 7 are new domains of Experiment 1 cases, 1 is a new case); AgentDojo −85.5 [−92.5, −77.6] (19 independent cases) | pre-registered primary (G1) |
-| **Asymmetry.** Approval claims barely move invalid evidence. | positive claims on invalid evidence: +0.7 (11 tasks), +0.7 (AB new), +1.9 (AgentDojo); asymmetry S1 +93 to +100 | H1–H3 (Experiment 1 primary) not supported |
+| **Asymmetry.** Generic approval claims do not move invalid evidence; a named approval ID can. | positive claims on invalid evidence: +0.7 (11 tasks), +0.7 (AB new), +1.9 [+1.1, +2.6] (AgentDojo); in AgentDojo all of it comes from the specific-ID claim (+7.5), the generic claims are 0 (post-hoc split); asymmetry S1 +93 to +100 | H1–H3 (Experiment 1 primary) not supported; G2 (generalization primary) not supported on AB new, supported on AgentDojo (Holm p = 0.0003) |
 | Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97). Caveat (post hoc): 23–41% of the refusals misread 09:00 as after the 10:00 snapshot, so the timing manipulation is weak | Experiment 2, pre-registered reading rules |
 | The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6; −10.6 if self-corrected replies are read by their last decision) | model panel; parser sensitivity in results/synthesis/ |
 | A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); Claude Sonnet 5.5 without thinking: 100% → 0–8% by the first decision of each reply, 30–45% by the last; not with thinking | results/synthesis/ |
@@ -42,6 +43,7 @@ Not established yet:
 | what | where |
 |---|---|
 | Synthesis: risks, comparisons, figures, cases | [results/synthesis/REPORT.md](results/synthesis/REPORT.md) (`experiments/synthesis.py`) |
+| Evidence map: each finding → tests, numbers, limits, figures, sources | [results/synthesis/EVIDENCE_MAP.md](results/synthesis/EVIDENCE_MAP.md) (`experiments/evidence_map.py`; every recorded test in `tables/prereg_tests.csv`) |
 | Experiment index (IDs, runs, status, outputs) | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) |
 | Pre-registrations (frozen before data; amendments appended) | `docs/*_PREREG.md` (listed in the index) |
 | Related work and how this study differs | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) |

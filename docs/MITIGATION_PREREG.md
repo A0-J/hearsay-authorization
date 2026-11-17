@@ -73,6 +73,9 @@ block. The build checks this with SHA-256 and fails otherwise.
   Candidate rule: a reply with two or more JSON decisions that differ is classified `ambiguous_output`. It
   counts as not approved (fail-closed, like a parse error), is tallied per arm, and the first-decision and
   last-decision readings are reported as a sensitivity analysis. Neither reading is called the model's intent.
+  Candidate reporting: every decision table shows DENY (`reject`), DEFER (if offered) and INVALID_OUTPUT
+  (parse error, bad decision value, `ambiguous_output`) as separate columns. The false-denial rate is then
+  also given without INVALID_OUTPUT, so that refusals and unusable replies are not read as the same thing.
 - **If tri-state cells are added later** (the DEFER arm's states; not in this scope), every arm will append the
   same tri-state clause from docs/EXPERIMENT2_DEFER_PREREG.md. DEFER will be reported as its own category,
   never merged into DENY or ALLOW, together with the legitimate-work retention rate.
