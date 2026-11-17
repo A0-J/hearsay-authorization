@@ -1,7 +1,7 @@
 # Experiment index
 
 One entry per experiment. Each entry gives the question, the pre-registration, the dataset, the runs and
-their status, where the outputs are, and the headline results. Status as of 2026-11-17.
+their status, where the outputs are, and the headline results. Status as of 2026-11-18.
 
 ## Run-ID legend
 
@@ -18,6 +18,7 @@ their status, where the outputs are, and the headline results. Status as of 2026
 | `AD1-*`, `AD2E-*` | generalization: AgentDojo tasks (E1 cells, E2 cells) | `exp1_ad`, `exp2_ad` | GENERALIZATION_PREREG.md |
 | `ADAB-*` | ablation on the AgentDojo tasks | `ablation_*_ad` | GENERALIZATION_PREREG.md |
 | `E3-*` | Experiment 3: end-to-end delegation with real tool calls | built at run time | EXPERIMENT3_E2E_PREREG.md |
+| `PV2X2-*` | planner × verifier 2×2 on the Experiment 3 runtime (coded, not run) | built at run time | PLANNER_VERIFIER_2X2_PREREG_DRAFT.md (draft) |
 | `*-dryrun`, `*-smoke*` | fake-client or environment checks; never data | — | — |
 
 Model suffixes:
@@ -176,6 +177,31 @@ Model suffixes:
     benchmark violations V;
   - T0016: safe completion 12/36 but task success 3/36;
   - design audit: in 7 of 11 tasks no benchmark violation can register in the pre-registered measures.
+
+### Planner × verifier 2×2 (draft, no runs; after the thesis)
+
+- **Draft:** PLANNER_VERIFIER_2X2_PREREG_DRAFT.md. The decisions of 2026-11-18 are at its top.
+- **Arms:**
+  - M0: no planner advisory, evidence-aware verifier;
+  - M1: no planner advisory, gate;
+  - M2: planner advisory, evidence-aware verifier;
+  - M3: planner advisory, gate.
+
+  The planner advisory is an oracle: the gate's verdict on the benchmark's preselected target call. In M1 and M3,
+  unauthorized gated execution is 0 by construction.
+- **Code (0 API calls until approved):**
+  - `experiments/run_planner_verifier_2x2.py`, `experiments/analyze_planner_verifier_2x2.py`,
+    `src/hearsay/authbench/planner_guard.py`;
+  - `configs/planner_verifier_2x2_template.json`: 5 Experiment 3 tasks, 360 episodes,
+    `approved_for_run: false`;
+  - `tests/test_planner_verifier_2x2.py`.
+
+  The Experiment 3 runtime gained two hooks that are off by default (`planner_override`, `shadow`).
+- **Open:**
+  - the message-path experiment that separates planner and executor;
+  - a safety evaluation independent of the gate;
+  - independent tasks for confirmation;
+  - the pilot go/no-go thresholds.
 
 ### Mitigation (draft, no runs)
 

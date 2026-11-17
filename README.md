@@ -5,7 +5,7 @@ that its approval was withdrawn. An LLM verifier then decides whether the action
 measures whether such **unverified claims change the verifier's decision even when the verifier also sees
 the independent approval records** (the policy and the approval system's state).
 
-Status: 2026-11-17. The research is in progress and experiments are paused while the next step is planned.
+Status: 2026-11-18. The research is in progress and experiments are paused while the next step is planned.
 Start here: **[results/synthesis/REPORT.md](results/synthesis/REPORT.md)** has the risk map, the comparisons, the
 figures and representative cases in one place. For writing up, **[results/synthesis/EVIDENCE_MAP.md](results/synthesis/EVIDENCE_MAP.md)**
 links each finding to its tests, numbers, limits, figures and sources.
@@ -33,6 +33,10 @@ Not established yet:
 - end-to-end harm (Experiment 3 is paused at 301 of 792 episodes; see the design audit);
 - the error-cause coding, which is model-assisted and still awaits the human check;
 - the mitigation experiment, which is a draft pre-registration with no runs;
+- where in the agent the withdrawal claim stops work, and whether a planner-side check restores it: a planner ×
+  verifier 2×2 is coded but not run, for after the thesis
+  ([docs/PLANNER_VERIFIER_2X2_PREREG_DRAFT.md](docs/PLANNER_VERIFIER_2X2_PREREG_DRAFT.md); its planner advisory
+  is an oracle, and separating planner and executor needs a further experiment);
 - how to read Claude replies that state a decision and then correct it: the frozen parser takes the first
   decision; no GPT result depends on this (results/synthesis/, Section 9);
 - a gate that enforces freshness: the provenance gate checks record validity only, so it allows the stale and
