@@ -224,5 +224,5 @@ requested action will not be carried out unless you receive new instructions or 
 
 - 이 예시에 쓴 T0005의 실험 1 원본 기록 48줄(유효 쪽, 메모 없음/철회, aware와 explicit)은
   `results/synthesis/examples/T0005_E1_gpt-4.1_records.jsonl`에 있습니다.
-- 전체 원본 응답(`results/*/verdicts.jsonl`, 약 109MB)과 실험 3의 에피소드 기록은 git에 올리지 않습니다.
-  zip으로 보관하고 SHA-256 해시를 `results/registry.json`에 기록합니다.
+- 전체 원본 응답(`results/*/verdicts.jsonl`, 약 109MB)과 실험 3의 에피소드 기록도 2026-11-18부터 git에 있습니다.
+  보관용 zip과 SHA-256 해시(`results/registry.json`)도 그대로 유지합니다.

@@ -56,7 +56,7 @@ Code changes at integration (2026-11-18), relative to the reviewer's package:
   no p above 20 cases. For up to 16 cases the p-value is identical; the bootstrap intervals differ slightly.
 - The analyzer reports `claim_propagated`, which `e2e.measures` already records.
 - The runner's manifest labels the advisory as an oracle, and the gate arms' 0 as by construction.
-- `results/PV2X2-*/episodes/` is gitignored.
+- Raw episodes are committed like the other runs (rule of 2026-11-18); `-dryrun` output stays gitignored.
 
 ## Research question
 

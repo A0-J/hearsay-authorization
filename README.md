@@ -55,7 +55,7 @@ Not established yet:
 | Figures (PNG) | `results/E1-figures/png/`, `results/E2-figures/png/`, `results/generalization-figures/png/` |
 | Per-run analysis | `results/<run-id>/analysis/REPORT.md`, `tests.json` |
 | Cross-run analyses | `results/ablation-*/`, `results/error-stages/`, `results/invalid-approvals/`, `results/h3-completeness/`, `results/E3-checks/`, `results/m-design/` |
-| Raw results (not in git) | `archives/` zips, with SHA-256 in [results/registry.json](results/registry.json) |
+| Raw results | in git since 2026-11-18: `results/<run-id>/verdicts.jsonl` (every reply), `results/E3-gpt-4.1-run1/episodes/`, `results/A-pilot-v2/`; also as `archives/` zips (local), with SHA-256 in [results/registry.json](results/registry.json) |
 | Provenance: code version, launch logs, pre-registration timing | [results/provenance/](results/provenance/README.md) |
 | Datasets (frozen cells and labels) | [dataset/](dataset/README.md): `exp1`, `exp2`, `exp2_defer`, `ablation_*`, `*_gen` (new AuthorizationBench tasks), `*_ad` (AgentDojo) |
 | Code | `src/hearsay/authbench/` (cells, evidence rendering, verifiers, gate, E2E runtime); `experiments/` (build, run, analyze, figures) |
@@ -80,7 +80,7 @@ python experiments/analyze_gen.py  results/G1-gpt-4.1-run1        # generalizati
 python experiments/analyze_ablation.py --help                     # verification-method ablation
 python experiments/figures_exp1.py ; python experiments/figures_exp2.py ; python experiments/figures_gen.py
 
-# raw results stay out of git
+# archive a run (zip + SHA-256); the raw files themselves are committed too
 python experiments/archive_run.py results/<run-id> --label "..."   # zip + SHA-256 into results/registry.json
 ```
 
