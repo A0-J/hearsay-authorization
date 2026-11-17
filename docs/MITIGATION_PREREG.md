@@ -1,7 +1,8 @@
 # Mitigation experiment (M): pre-registration — DRAFT
 
 **Status: draft, not in force.** It comes into force when the researcher (1) fixes the open values marked
-**[OPEN]** (the review texts of A and B, the non-inferiority margins δ, and the pilot thresholds g and h) and (2)
+**[OPEN]** (the review texts of A and B, the non-inferiority margins δ, the pilot thresholds g and h, and the
+rule for replies with more than one decision) and (2)
 commits this file, before any pilot call. No API call has been made for this experiment. Drafted 2026-11-17.
 
 ## 1. Question
@@ -67,6 +68,14 @@ block. The build checks this with SHA-256 and fails otherwise.
 - **Any other value** (including `defer`) and any unparseable reply are recorded as `bad decision` / parse
   error. They count as not approved in every rate, as in all earlier runs (`run_exp1.parse`: approve iff the
   decision equals `approve`). They are tallied per arm and reported, never dropped.
+- **Replies with more than one decision [OPEN].** Earlier Claude runs contain replies that state a decision
+  and then a conflicting one; the frozen parser reads the first (results/synthesis/REPORT.md, Section 9).
+  Candidate rule: a reply with two or more JSON decisions that differ is classified `ambiguous_output`. It
+  counts as not approved (fail-closed, like a parse error), is tallied per arm, and the first-decision and
+  last-decision readings are reported as a sensitivity analysis. Neither reading is called the model's intent.
+  Candidate reporting: every decision table shows DENY (`reject`), DEFER (if offered) and INVALID_OUTPUT
+  (parse error, bad decision value, `ambiguous_output`) as separate columns. The false-denial rate is then
+  also given without INVALID_OUTPUT, so that refusals and unusable replies are not read as the same thing.
 - **If tri-state cells are added later** (the DEFER arm's states; not in this scope), every arm will append the
   same tri-state clause from docs/EXPERIMENT2_DEFER_PREREG.md. DEFER will be reported as its own category,
   never merged into DENY or ALLOW, together with the legitimate-work retention rate.

@@ -192,7 +192,7 @@ Model suffixes:
 
 | folder | what | note |
 |---|---|---|
-| `results/synthesis/` | **start here**: risk map, comparisons across task sets, models, policies and methods, four figures, five rule-selected cases (`experiments/synthesis.py`) | mixes pre-registered and post-hoc results; each is tagged P, S, D or H |
+| `results/synthesis/` | **start here**: risk map, comparisons across task sets, models, policies and methods, four figures, five rule-selected cases (`experiments/synthesis.py`); EVIDENCE_MAP.md links each finding to its tests, numbers, limits, figures and sources (`experiments/evidence_map.py`) | mixes pre-registered and post-hoc results; each is tagged P, S, D or H |
 | `results/error-stages/` | causes of incorrect decisions: two coders, kappa, adjudication | coders and adjudicator are Claude instances; consistency, not validity |
 | `results/error-stages/human-check/` | blinded sheets for a person: 60 errors + 34 AgentDojo approvals | **not yet coded** |
 | `results/invalid-approvals/` | where unauthorized approvals occur and what the reason cites | post hoc |
