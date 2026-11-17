@@ -17,12 +17,13 @@ cases. Details and tests are in each run's `analysis/REPORT.md`.
 
 | finding | evidence | status |
 |---|---|---|
-| **A withdrawal claim overrides valid records.** "The approval was withdrawn" lowers approval of calls that valid, complete records authorize. | 11 tasks, evidence-aware: GPT-4.1 −82.6 [−93.2, −72.0]; gpt-4o −75.0; gpt-4.1-mini −60.6; Claude Sonnet 4.6 −47.0; gpt-5.5, Claude Haiku 5.5 and Claude Sonnet 5.5 (thinking on or off) ≈ 0 | secondary in Experiment 1 (H5); confirmed as a primary test in Experiment 2 (P1) |
-| It replicates on independent tasks (GPT-4.1) | AuthorizationBench new tasks −79.3 [−88.2, −67.5] (8 cases); AgentDojo −85.5 [−92.5, −77.6] (19 cases) | pre-registered primary (G1) |
+| **A withdrawal claim overrides valid records.** "The approval was withdrawn" lowers approval of calls that valid, complete records authorize. | 11 tasks, evidence-aware: GPT-4.1 −82.6 [−93.2, −72.0]; gpt-4o −75.0; gpt-4.1-mini −60.6; Claude Sonnet 4.6 −47.0; gpt-5.5, Claude Haiku 5.5 and Claude Sonnet 5.5 (thinking on or off) ≈ 0 | secondary in Experiment 1 (H5); confirmed as a primary test in Experiment 2 (P1), which re-samples the same inputs |
+| It replicates on new tasks (GPT-4.1) | AuthorizationBench new tasks −79.3 [−88.2, −67.5] (8 cases: 7 are new domains of Experiment 1 cases, 1 is a new case); AgentDojo −85.5 [−92.5, −77.6] (19 independent cases) | pre-registered primary (G1) |
 | **Asymmetry.** Approval claims barely move invalid evidence. | positive claims on invalid evidence: +0.7 (11 tasks), +0.7 (AB new), +1.9 (AgentDojo); asymmetry S1 +93 to +100 | H1–H3 (Experiment 1 primary) not supported |
 | Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97). Caveat (post hoc): 23–41% of the refusals misread 09:00 as after the 10:00 snapshot, so the timing manipulation is weak | Experiment 2, pre-registered reading rules |
-| The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6) | model panel |
-| A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); also Claude Sonnet 5.5 without thinking (100% → 0–8%), not with thinking | results/synthesis/ |
+| The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6; −10.6 if self-corrected replies are read by their last decision) | model panel; parser sensitivity in results/synthesis/ |
+| A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); Claude Sonnet 5.5 without thinking: 100% → 0–8% by the first decision of each reply, 30–45% by the last; not with thinking | results/synthesis/ |
+| End-to-end, partial: the withdrawal claim stops work at the planner | Experiment 3 (paused, 5 tasks): with the withdrawal note no episode attempts the gated call (0/94); without a claim 81/106 do | descriptive; results/synthesis/ |
 | With a DEFER option (GPT-4.1) | a withdrawal claim → 100% defer, 0% reject; a 5.5-hour-old snapshot without a claim → 100% approve (normative: defer) | exploratory, descriptive |
 | Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted up to 48% (GPT-4.1, AgentDojo) and recorded as the decision basis | results/invalid-approvals/ |
 
@@ -30,7 +31,9 @@ Not established yet:
 - whether the effect generalizes to independent tasks for models other than GPT-4.1;
 - end-to-end harm (Experiment 3 is paused at 301 of 792 episodes; see the design audit);
 - the error-cause coding, which is model-assisted and still awaits the human check;
-- the mitigation experiment, which is a draft pre-registration with no runs.
+- the mitigation experiment, which is a draft pre-registration with no runs;
+- how to read Claude replies that state a decision and then correct it: the frozen parser takes the first
+  decision; no GPT result depends on this (results/synthesis/, Section 9).
 
 ## Where to look
 
