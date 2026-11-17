@@ -25,7 +25,7 @@ cases. Details and tests are in each run's `analysis/REPORT.md`.
 | A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); Claude Sonnet 5.5 without thinking: 100% → 0–8% by the first decision of each reply, 30–45% by the last; not with thinking | results/synthesis/ |
 | End-to-end, partial: the withdrawal claim stops work at the planner | Experiment 3 (paused, 5 tasks): with the withdrawal note no episode attempts the gated call (0/94); without a claim 81/106 do | descriptive; results/synthesis/ |
 | With a DEFER option (GPT-4.1) | a withdrawal claim → 100% defer, 0% reject; a 5.5-hour-old snapshot without a claim → 100% approve (normative: defer) | exploratory, descriptive |
-| Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted up to 48% (GPT-4.1, AgentDojo) and recorded as the decision basis | results/invalid-approvals/ |
+| Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted in 29 of 57 calls (51%) against a complete lookup that found nothing (GPT-4.1, AgentDojo, 19 primary cases; 29/60 with Abank00 in results/invalid-approvals/) and recorded as the decision basis | results/invalid-approvals/, results/synthesis/ |
 
 Not established yet:
 - whether the effect generalizes to independent tasks for models other than GPT-4.1;
@@ -33,7 +33,9 @@ Not established yet:
 - the error-cause coding, which is model-assisted and still awaits the human check;
 - the mitigation experiment, which is a draft pre-registration with no runs;
 - how to read Claude replies that state a decision and then correct it: the frozen parser takes the first
-  decision; no GPT result depends on this (results/synthesis/, Section 9).
+  decision; no GPT result depends on this (results/synthesis/, Section 9);
+- a gate that enforces freshness: the provenance gate checks record validity only, so it allows the stale and
+  re-check cells of Experiment 2 and the DEFER arm (results/synthesis/, Section 10).
 
 ## Where to look
 
@@ -47,6 +49,7 @@ Not established yet:
 | Per-run analysis | `results/<run-id>/analysis/REPORT.md`, `tests.json` |
 | Cross-run analyses | `results/ablation-*/`, `results/error-stages/`, `results/invalid-approvals/`, `results/h3-completeness/`, `results/E3-checks/`, `results/m-design/` |
 | Raw results (not in git) | `archives/` zips, with SHA-256 in [results/registry.json](results/registry.json) |
+| Code version of each run | [results/run_commits.csv](results/run_commits.csv): manifests record commits from before a 2026-11-17 message-only history rewrite; this maps each to the current commit with the identical tree |
 | Datasets (frozen cells and labels) | [dataset/](dataset/README.md): `exp1`, `exp2`, `exp2_defer`, `ablation_*`, `*_gen` (new AuthorizationBench tasks), `*_ad` (AgentDojo) |
 | Code | `src/hearsay/authbench/` (cells, evidence rendering, verifiers, gate, E2E runtime); `experiments/` (build, run, analyze, figures) |
 
@@ -89,7 +92,8 @@ It then writes `PAUSED.json`, and rerunning the same command resumes it.
 - Pre-register before data. Changes go in dated amendments, never as silent edits.
 - Never pool models, settings or task sets. The unit of analysis is the task or case, never the call.
 - Report every result, including nulls and paused runs. A post-hoc result is labelled as post hoc.
-- The provenance gate defines the labels, so its zero error is by construction and is not a finding.
+- The provenance gate defines the Experiment 1 labels, so its zero error there is by construction and is not a
+  finding. It checks record validity only, not the freshness rule of Experiment 2 and the DEFER arm.
 - `semantic_provenance_direct` is a simplified variant of DualFlow, not DualFlow itself.
 
 ## Earlier stages
