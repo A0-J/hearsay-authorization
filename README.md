@@ -6,6 +6,8 @@ measures whether such **unverified claims change the verifier's decision even wh
 the independent approval records** (the policy and the approval system's state).
 
 Status: 2026-11-17. The research is in progress and experiments are paused while the next step is planned.
+Start here: **[results/synthesis/REPORT.md](results/synthesis/REPORT.md)** has the risk map, the comparisons, the
+figures and representative cases in one place.
 Full index of experiments, runs and outputs: **[docs/EXPERIMENTS.md](docs/EXPERIMENTS.md)**.
 
 ## Main findings so far
@@ -18,8 +20,9 @@ cases. Details and tests are in each run's `analysis/REPORT.md`.
 | **A withdrawal claim overrides valid records.** "The approval was withdrawn" lowers approval of calls that valid, complete records authorize. | 11 tasks, evidence-aware: GPT-4.1 −82.6 [−93.2, −72.0]; gpt-4o −75.0; gpt-4.1-mini −60.6; Claude Sonnet 4.6 −47.0; gpt-5.5, Claude Haiku 5.5 and Claude Sonnet 5.5 (thinking on or off) ≈ 0 | secondary in Experiment 1 (H5); confirmed as a primary test in Experiment 2 (P1) |
 | It replicates on independent tasks (GPT-4.1) | AuthorizationBench new tasks −79.3 [−88.2, −67.5] (8 cases); AgentDojo −85.5 [−92.5, −77.6] (19 cases) | pre-registered primary (G1) |
 | **Asymmetry.** Approval claims barely move invalid evidence. | positive claims on invalid evidence: +0.7 (11 tasks), +0.7 (AB new), +1.9 (AgentDojo); asymmetry S1 +93 to +100 | H1–H3 (Experiment 1 primary) not supported |
-| Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97) | Experiment 2, pre-registered reading rules |
+| Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97). Caveat (post hoc): 23–41% of the refusals misread 09:00 as after the 10:00 snapshot, so the timing manipulation is weak | Experiment 2, pre-registered reading rules |
 | The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6) | model panel |
+| A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); also Claude Sonnet 5.5 without thinking (100% → 0–8%), not with thinking | results/synthesis/ |
 | With a DEFER option (GPT-4.1) | a withdrawal claim → 100% defer, 0% reject; a 5.5-hour-old snapshot without a claim → 100% approve (normative: defer) | exploratory, descriptive |
 | Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted up to 48% (GPT-4.1, AgentDojo) and recorded as the decision basis | results/invalid-approvals/ |
 
@@ -33,6 +36,7 @@ Not established yet:
 
 | what | where |
 |---|---|
+| Synthesis: risks, comparisons, figures, cases | [results/synthesis/REPORT.md](results/synthesis/REPORT.md) (`experiments/synthesis.py`) |
 | Experiment index (IDs, runs, status, outputs) | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) |
 | Pre-registrations (frozen before data; amendments appended) | `docs/*_PREREG.md` (listed in the index) |
 | Related work and how this study differs | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) |
