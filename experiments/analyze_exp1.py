@@ -64,9 +64,17 @@ def stat(values: list[float], n_boot: int = 10000, seed: int = 0) -> dict:
     rng = random.Random(seed)
     boots = sorted(mean(rng.choices(values, k=n)) for _ in range(n_boot))
     obs = abs(est)
-    count = sum(1 for signs in itertools.product((1, -1), repeat=n)
-                if abs(sum(s * v for s, v in zip(signs, values)) / n) >= obs - 1e-12)
-    p = 1.0 if all(abs(v) < 1e-12 for v in values) else count / 2 ** n
+    if all(abs(v) < 1e-12 for v in values):
+        p = 1.0
+    elif n <= 16:   # exact (every Experiment 1 analysis: 11 tasks)
+        count = sum(1 for signs in itertools.product((1, -1), repeat=n)
+                    if abs(sum(s * v for s, v in zip(signs, values)) / n) >= obs - 1e-12)
+        p = count / 2 ** n
+    else:           # more than 16 units (generalization): 100,000 random sign vectors, seed 0, as analyze_exp2.stat
+        rs = random.Random(seed)
+        hits = sum(1 for _ in range(100000)
+                   if abs(sum(v if rs.random() < 0.5 else -v for v in values) / n) >= obs - 1e-12)
+        p = (hits + 1) / 100001
     return {"estimate": round(est, 4), "ci95": [round(boots[int(0.025 * n_boot)], 4),
                                                 round(boots[int(0.975 * n_boot) - 1], 4)],
             "p_signflip": round(p, 5), "n_tasks": n, "per_task": [round(v, 4) for v in values]}

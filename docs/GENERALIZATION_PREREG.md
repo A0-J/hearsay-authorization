@@ -226,3 +226,26 @@ code, not the review's conclusions).
      This gives 16 units without Abank00.
    - **S-b.** Abank06 and Atravel00 are also dropped (17 cases).
 3. **No construction is changed.** The MINOR findings are reported with the results.
+
+### Amendment 3: the researcher's decisions (2026-11-17, recorded before the remaining AgentDojo calls)
+
+These decisions follow item 2 and item 1 above. Like the rest of Amendment 3, they were taken after seeing
+results.
+
+- **GPT-4.1's AgentDojo semantic run: not run.** The semantic diagnosis (item 2) already showed false
+  rejections that follow from the missing trusted context. Repeating the same configuration adds no
+  information.
+- **Claude adaptive, Experiment 2's cells on the AgentDojo tasks: on hold.** The researcher decides after the
+  Claude Experiment 1 results on the new cases, using three questions:
+  1. Do the approval and withdrawal claims have an effect on the independent new cases?
+  2. Does the pattern differ from the 11 tasks?
+  3. Would Experiment 2's cells separate timing, policy and the claim's source?
+  If these cells run, they are an exploratory extension whose decision was informed by results, and are
+  reported as such.
+- **Order of execution.** Experiments run one at a time.
+  - The GPT-4.1 generalization runs finish first.
+  - The Claude Experiment 1 runs on the new tasks are paused, not abandoned (AuthorizationBench 2,104 of
+    9,744 calls; AgentDojo 1,276 of 6,960). Both claim-only runs are complete.
+- **Retries.** From this point the remaining GPT-4.1 generalization calls run without client retries
+  (`HEARSAY_API_MAX_RETRIES=0`), so any API error pauses the run. The inputs, the cells and the sampling are
+  unchanged.

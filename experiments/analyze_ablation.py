@@ -46,12 +46,13 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--e1", type=Path, required=True)
     ap.add_argument("--claim-only", type=Path, required=True)
-    ap.add_argument("--semantic", type=Path, required=True)
+    ap.add_argument("--semantic", type=Path, help="omitted where the semantic arm was not run (AgentDojo; "
+                                                 "Amendment 3): A3 is then not computed and Holm covers A1-A2")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
     m1, e1 = verdicts(a.e1)
     _, co = verdicts(a.claim_only)
-    _, se = verdicts(a.semantic)
+    _, se = verdicts(a.semantic) if a.semantic else (None, [])
     data = ROOT / "dataset" / m1["config"].get("dataset_dir", "exp1")
     cells, labels = {}, {}
     for d in sorted((data / "tasks").iterdir()):
@@ -115,9 +116,10 @@ def main() -> None:
         "A1_unauthorized_approval_positive_claims_claim_only_minus_aware": diff("claim_only", "aware", "invalid", POSITIVE),
         "A2_false_rejection_negative_claim_aware_minus_explicit": diff("aware", "explicit", "valid", ("negative",),
                                                                        reject=True),
-        "A3_false_rejection_valid_and_control_semantic_gate_minus_explicit": stat(
-            [sg[t] - ex[t] for t in sorted(set(sg) & set(ex))]),
     }
+    if a.semantic:
+        tests["A3_false_rejection_valid_and_control_semantic_gate_minus_explicit"] = stat(
+            [sg[t] - ex[t] for t in sorted(set(sg) & set(ex))])
     hp = holm({k: v["p_signflip"] for k, v in tests.items()})
     for k in tests:
         tests[k]["p_holm"] = hp[k]
@@ -143,9 +145,11 @@ def main() -> None:
     (out / "tests.json").write_text(json.dumps(tests, indent=2) + "\n", encoding="utf-8")
     missing = {m: sum(1 for x in rows if x["method"] == m) for m in METHODS}
     lines = ["# Verification-method ablation: results", "",
-             f"E1 run `{a.e1.name}`, claim-only run `{a.claim_only.name}`, semantic run `{a.semantic.name}`. "
+             f"E1 run `{a.e1.name}`, claim-only run `{a.claim_only.name}`, semantic run "
+             f"`{a.semantic.name if a.semantic else 'not run (Amendment 3)'}`. "
              "Pre-registration: docs/ABLATION_PREREG.md. Tables only.", "",
-             f"Decisions per method: {missing}.", "", "## Pre-registered comparisons (unit = task, Holm over A1-A3)",
+             f"Decisions per method: {missing}.", "",
+             f"## Pre-registered comparisons (unit = task, Holm over {'A1-A3' if a.semantic else 'A1-A2'})",
              "", "| test | estimate | 95% CI | p (sign-flip) | p (Holm) |", "|---|---|---|---|---|"]
     lines += [f"| {k} | {s['estimate']:+.4f} | [{s['ci95'][0]:+.4f}, {s['ci95'][1]:+.4f}] | {s['p_signflip']:.4f} | "
               f"{s['p_holm']:.4f} |" for k, s in tests.items()]

@@ -20,7 +20,7 @@ MODEL = "gpt-4.1"
 COORDINATOR_MODEL = EXECUTOR_MODEL = VERIFIER_MODEL = RESTATE_MODEL = MODEL
 N_VERIFY = 3        # verifier votes per guarded call (strict majority approves)
 N_RESTATE = 5       # coordinator restatements per base task (the semantic flow's reference)
-API_MAX_RETRIES = 8
+API_MAX_RETRIES = int(os.environ.get("HEARSAY_API_MAX_RETRIES", "8"))   # 0: any API error pauses the run
 
 
 ANTHROPIC_KEY_FILE = ROOT / "anthropic_api_key.txt"   # gitignored; used only when ANTHROPIC_API_KEY is not set
