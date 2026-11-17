@@ -23,7 +23,7 @@ cases. Details and tests are in each run's `analysis/REPORT.md`.
 | Mechanism (GPT-4.1, three task sets) | not claim timing (P2 = 0), not source authority (S3 ≈ 0), not fixed by a policy rule (S4 = 0); removed by an evidence-priority instruction (S5 +95 to +97). Caveat (post hoc): 23–41% of the refusals misread 09:00 as after the 10:00 snapshot, so the timing manipulation is weak | Experiment 2, pre-registered reading rules |
 | The instruction fix depends on the model | evidence-explicit leaves −32.6 (gpt-4.1-mini) and −34.1 (Claude Sonnet 4.6; −10.6 if self-corrected replies are read by their last decision) | model panel; parser sensitivity in results/synthesis/ |
 | A policy rule undoes the instruction fix (post hoc) | with the record_authority rule, evidence-explicit approval of a valid call whose claimed withdrawal predates the snapshot falls from 85–88% to 0–6% (GPT-4.1, three sets); Claude Sonnet 5.5 without thinking: 100% → 0–8% by the first decision of each reply, 30–45% by the last; not with thinking | results/synthesis/ |
-| End-to-end, partial: the withdrawal claim stops work at the planner | Experiment 3 (paused, 5 tasks): with the withdrawal note no episode attempts the gated call (0/94); without a claim 81/106 do | descriptive; results/synthesis/ |
+| End-to-end, partial: the withdrawal claim stops work before any verifier sees a call | Experiment 3 (paused, 5 tasks): with the withdrawal note no episode attempts the gated call (0/94); without a claim 81/106 do. The planner relays the claim with an instruction not to proceed; planner and executor were not separated | descriptive; results/synthesis/ |
 | With a DEFER option (GPT-4.1) | a withdrawal claim → 100% defer, 0% reject; a 5.5-hour-old snapshot without a claim → 100% approve (normative: defer) | exploratory, descriptive |
 | Forged approval IDs (exploratory, post hoc) | an approval id named in the task message but absent from the records is accepted in 29 of 57 calls (51%) against a complete lookup that found nothing (GPT-4.1, AgentDojo, 19 primary cases; 29/60 with Abank00 in results/invalid-approvals/) and recorded as the decision basis | results/invalid-approvals/, results/synthesis/ |
 
@@ -49,7 +49,7 @@ Not established yet:
 | Per-run analysis | `results/<run-id>/analysis/REPORT.md`, `tests.json` |
 | Cross-run analyses | `results/ablation-*/`, `results/error-stages/`, `results/invalid-approvals/`, `results/h3-completeness/`, `results/E3-checks/`, `results/m-design/` |
 | Raw results (not in git) | `archives/` zips, with SHA-256 in [results/registry.json](results/registry.json) |
-| Code version of each run | [results/run_commits.csv](results/run_commits.csv): manifests record commits from before a 2026-11-17 message-only history rewrite; this maps each to the current commit with the identical tree |
+| Provenance: code version, launch logs, pre-registration timing | [results/provenance/](results/provenance/README.md) |
 | Datasets (frozen cells and labels) | [dataset/](dataset/README.md): `exp1`, `exp2`, `exp2_defer`, `ablation_*`, `*_gen` (new AuthorizationBench tasks), `*_ad` (AgentDojo) |
 | Code | `src/hearsay/authbench/` (cells, evidence rendering, verifiers, gate, E2E runtime); `experiments/` (build, run, analyze, figures) |
 

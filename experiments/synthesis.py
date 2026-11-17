@@ -671,6 +671,49 @@ def manifest_sources():
     return out
 
 
+def run_provenance():
+    """Per verifier-only run: inputs and instructions against the frozen cells, the stored decision against the
+    frozen parser re-applied to the raw reply, the served model, the sampling, duplicates and completeness."""
+    from run_exp1 import parse
+    commits = {r["run"]: r for r in csv.DictReader((RES / "provenance" / "run_commits.csv").open(encoding="utf-8"))}
+    rows = []
+    for vf in sorted(RES.glob("*/verdicts.jsonl")):
+        run = vf.parent.name
+        if run.endswith("-dryrun") or run.startswith("A-"):
+            continue
+        cfg = json.loads((vf.parent / "manifest.json").read_text(encoding="utf-8")).get("config", {})
+        ds = cfg.get("dataset_dir", "exp1")            # the Experiment 1 configs predate the field
+        cells = {}
+        for f in (ROOT / "dataset" / ds / "tasks").glob("*/cells.jsonl"):
+            for c in map(json.loads, f.read_text(encoding="utf-8").splitlines()):
+                cells[c["cell_id"]] = (c["input_sha256"], c["instructions_sha256"])
+        decs = ("approve", "reject", "defer") if ds.startswith("exp2_defer") else ("approve", "reject")
+        n = inp = ins = rep = perr = 0
+        served, keys = defaultdict(int), defaultdict(int)
+        for line in vf.open(encoding="utf-8"):
+            v = json.loads(line)
+            n += 1
+            c = cells.get(v["cell_id"])
+            inp += bool(c and c[0] == v["input_sha256"])
+            ins += bool(c and c[1] == v["instructions_sha256"])
+            p = parse(v.get("raw") or "", decs)
+            rep += p["decision"] == v.get("decision") and p["approve"] == v.get("approve")
+            perr += bool(v.get("parse_error"))
+            served[v.get("served_model")] += 1
+            keys[(v["cell_id"], v["repeat"])] += 1
+        cm = commits.get(run, {})
+        rows.append({"run": run, "model": cfg.get("model"), "served_models": "; ".join(f"{k} ({x})" for k, x in
+                                                                                   sorted(served.items())),
+                     "sampling": json.dumps(cfg.get("sampling", {})), "request": json.dumps(cfg.get("request", {})),
+                     "repeats": cfg.get("repeats"), "calls": n, "expected_calls": len(cells) * cfg.get("repeats", 0),
+                     "duplicate_cell_repeats": sum(x - 1 for x in keys.values() if x > 1),
+                     "input_sha256_match": inp, "instructions_sha256_match": ins,
+                     "decision_reproduced_by_frozen_parser": rep, "parse_errors": perr,
+                     "recorded_dirty": cm.get("recorded_dirty", ""), "current_commit": cm.get("current_commit", "")[:7]})
+    write_csv("run_provenance.csv", rows)
+    return rows
+
+
 # ---------------------------------------------------------------- 10. representative cases
 def tool_of(inp: str) -> str | None:
     m = re.search(r"Proposed tool call: (\{.*\})", inp)
@@ -851,6 +894,7 @@ def main() -> None:
     e2e_ms, e2e_rows, e2e_full, e2e_sub = e2e_planner()
     scope, scope_cells = label_scope()
     mani = manifest_sources()
+    prov = run_provenance()
     cs = cases()
     ps = {(r["run"], r["measure"], r["rule"]): r["value"] for r in psens}
 
@@ -1090,8 +1134,9 @@ def main() -> None:
             seen.append(k)
             L.append(f"| {r['run']} | {r['measure']} | {ps[(*k, 'first')]} | {ps[(*k, 'last')]} |")
     L += ["", "All published numbers use the first decision, as the frozen parser does; the last-decision values are "
-          "a sensitivity analysis (H). Which to treat as the model's decision is a choice to make and state: the "
-          "first is what a deployed parser of this kind would act on; the last is what the model settled on. "
+          "a sensitivity analysis (H). The first is what a deployed parser of this kind would act on; the last is the "
+          "decision the reply ends with. Neither is shown to be the model's intent: what is observed is a reply "
+          "that states two conflicting decisions. "
           "Affected statements: the panel's Claude Sonnet 4.6 explicit result, and Claude Sonnet 5.5 (no thinking) "
           "under the record rule and in the DEFER arm. No GPT result is affected.", ""]
 
@@ -1128,7 +1173,26 @@ def main() -> None:
           "block the call; only the DEFER arm separates \"not authorized\" from \"not yet established\". (3) Cells "
           "without a normative label (a withdrawal with no time under either policy; one after the snapshot under "
           "the base policy) are reported as rates and never counted as errors, as pre-registered "
-          "(docs/EXPERIMENT2_PREREG.md, Labels).", "",
+          "(docs/EXPERIMENT2_PREREG.md, Labels).", ""]
+
+    full_inp = all(r["input_sha256_match"] == r["calls"] for r in prov)
+    full_ins = all(r["instructions_sha256_match"] == r["calls"] for r in prov)
+    full_rep = all(r["decision_reproduced_by_frozen_parser"] == r["calls"] for r in prov)
+    dups = sum(r["duplicate_cell_repeats"] for r in prov)
+    multi = [r["run"] for r in prov if ";" in r["served_models"]]
+    partial = [f"{r['run']} ({r['calls']}/{r['expected_calls']})" for r in prov if r["calls"] < r["expected_calls"]]
+    L += ["## 11. Provenance: data, code and runs", "",
+          f"Every verifier-only run ({len(prov)} runs, {sum(r['calls'] for r in prov):,} recorded calls; "
+          "tables/run_provenance.csv): recorded input hash equals the frozen cell's in "
+          + ("every call" if full_inp else "NOT every call") + "; instruction hash in "
+          + ("every call" if full_ins else "NOT every call") + "; re-applying the frozen parser to the raw reply "
+          "gives the stored decision in " + ("every call" if full_rep else "NOT every call") + f"; {dups} duplicate "
+          "cell-repeat records; " + ("one served model per run" if not multi else "more than one served model in "
+          + ", ".join(multi)) + ". The sampling settings are those of each run's config (recorded in its manifest). "
+          "A call that fails after the client's retries pauses the run and is not recorded; a resumed run skips "
+          "recorded calls. Runs not complete: " + (", ".join(partial) or "none") + ".", "",
+          "Not covered by these checks: uncommitted changes to the runner at run time (the manifests mark most "
+          "runs dirty; the diff was not saved) and request settings not written to the config (client defaults).", "",
           "Dataset sources: the manifests of " + ", ".join(sorted({r["dataset"] for r in old})) + " record exp1.py "
           "as of commit dbe81da. Commit bbd41ca (2026-11-16, Experiment 3) added a `bg_tools` field whose default is "
           "the old constant; the datasets built later record that version, which is the current file "
@@ -1136,9 +1200,11 @@ def main() -> None:
           "take it). The change does not alter any existing cell: tests/test_exp1.py rebuilds Experiment 1's cells "
           "from the current code, and an outside audit rebuilt all 15 datasets (16,815 cells) with no mismatch. "
           "The commits recorded in the run manifests predate a rewrite of the commit messages on 2026-11-17; "
-          "results/run_commits.csv maps each to the current commit with the identical tree.", ""]
+          "results/provenance/run_commits.csv maps each to the current commit with the identical tree.", "",
+          "Pre-registration timing (commit times against the runs' launch logs, kept in "
+          "results/provenance/launch_logs/): results/provenance/README.md.", ""]
 
-    L += ["## 11. End-to-end, partial: where the withdrawal claim acts (Experiment 3, paused; D)", "",
+    L += ["## 12. End-to-end, partial: where the withdrawal claim acts (Experiment 3, paused; D)", "",
           f"Experiment 3 stopped at {len(e2e_ms)} finished episodes of 792, in 5 of 11 tasks, with unequal cells; "
           "nothing here is a test. Counts over all methods (the verification method only acts once a gated call "
           "is proposed):", "", "| state | handoff claim | episodes | a gated call was attempted | the planner's "
@@ -1153,12 +1219,13 @@ def main() -> None:
           "With a withdrawal note the planner tells the executor not to proceed (e.g. \"The approval … has been "
           "withdrawn, so please do not proceed with this request\"), and the executor proposes no tool call. The "
           "claim therefore stops legitimate work *before* any verifier sees a call, so a better verifier cannot "
-          "recover it. Consequence for the pre-registered test E3-2 (safe completion, valid state, withdrawal "
+          "recover it in this design. Whether the planner's instruction or the executor's own reading of the claim "
+          "stops the work was not separated. Consequence for the pre-registered test E3-2 (safe completion, valid state, withdrawal "
           "claim, evidence-explicit − evidence-aware): with no gated call ever proposed under the withdrawal claim, "
           "both methods are at 0 and the test cannot separate them. The approval note, by contrast, reaches the "
           "planner's message in few episodes. To be weighed before Experiment 3 resumes.", ""]
 
-    L += ["## 12. Representative cases", "",
+    L += ["## 13. Representative cases", "",
           "Each case is chosen by the stated rule, not by hand. Inputs are excerpts of the stored cell (the claim "
           "note, the request, the proposed call, the policy sentence that matters and the records for the called "
           "tool); replies are the verifier's own `reason`, unedited.", ""]
@@ -1169,9 +1236,11 @@ def main() -> None:
             L += [f"- **{who}:** \"{txt}\""]
         L += [""] + [f"- {x}" for x in c["facts"]] + [""]
 
-    L += ["## 13. What is not established", "",
+    L += ["## 14. What is not established", "",
           "- End-to-end harm: Experiment 3 is paused at 301 of 792 episodes (results/E3-checks/DESIGN_AUDIT.md); "
-          "apart from Section 11, every number above is a verifier decision, not an executed action.",
+          "apart from Section 12, every number above is a verifier decision, not an executed action.",
+          "- Where in the agent the withdrawal claim stops the work: in Experiment 3 the planner relays it with an "
+          "instruction not to proceed and the executor proposes nothing; the two stages were not separated.",
           "- A gate that enforces freshness: the provenance gate checks record validity only (Section 10).",
           "- External validity of the labels: they follow the stated policy and records; whether those match what "
           "a real organisation would authorize is not tested.",
