@@ -49,6 +49,7 @@ Not established yet:
 | Synthesis: risks, comparisons, figures, cases | [results/synthesis/REPORT.md](results/synthesis/REPORT.md) (`experiments/synthesis.py`) |
 | Evidence map: each finding → tests, numbers, limits, figures, sources | [results/synthesis/EVIDENCE_MAP.md](results/synthesis/EVIDENCE_MAP.md) (`experiments/evidence_map.py`; every recorded test in `tables/prereg_tests.csv`) |
 | Experiment index (IDs, runs, status, outputs) | [docs/EXPERIMENTS.md](docs/EXPERIMENTS.md) |
+| One task followed through Experiment 1 end to end (Korean; input, label, call, reply, aggregation, test) | [docs/WORKED_EXAMPLE.md](docs/WORKED_EXAMPLE.md), raw records in `results/synthesis/examples/` |
 | Pre-registrations (frozen before data; amendments appended) | `docs/*_PREREG.md` (listed in the index) |
 | Related work and how this study differs | [docs/RELATED_WORK.md](docs/RELATED_WORK.md) |
 | Figures (PNG) | `results/E1-figures/png/`, `results/E2-figures/png/`, `results/generalization-figures/png/` |
