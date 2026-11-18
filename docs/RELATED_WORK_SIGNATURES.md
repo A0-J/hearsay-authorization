@@ -9,6 +9,10 @@
   따라서 "서명으로 위임하자"는 제안만으로는 공백이 아니다.
 - **자연어 전달 vs 서명 전달을 LLM으로 직접 비교한 실험도 이미 1편 있다**(Signed but Not Safe, 2026-11).
   다만 대상은 *요구사항 전달*이고, 승인·철회 같은 *권한 상태 결정*은 다루지 않는다(초록 기준).
+- 서명된 승인·철회, 실행 직전 재확인, 승인 1회 사용은 **IETF 초안 수준으로 이미 정의**되어 있다(§3a).
+  PCM은 증명 없는 주장을 "unproven"으로 분류하는 프로토콜을 AP2 등 6개와 비교했다(§2). 둘 다 LLM 행동은 측정하지 않는다.
+- **Safin 외(2609.17648)는 LLM 파이프라인에서 위조 승인 문구가 정상 업무 거부(FPR 49%)를 낳고, 서명 토큰·게이트는 이를 고치지 못하며,
+  문구 제거(Observer)가 고친다는 것을 실험으로 보였다**(§2a). 우리 철회 주장 결과와 가장 가까운 선행 실험이다.
 - 이번 조사에서 **찾지 못한 것**(= 후보 공백, 본문 확인 필요):
   1. 확인되지 않은 **자연어 철회 주장**이 유효한 승인을 무력화하는 현상(잘못된 거부, 가용성 피해)의 측정.
   2. 검증 가능한 기록을 LLM이 **보고도** 자연어 주장을 따른다는 측정
@@ -21,6 +25,8 @@
 | 논문 | 무엇을 했나 | 우리와의 차이 |
 |---|---|---|
 | **Signed but Not Safe: Requirement Integrity in Multi-Agent LLM Handoffs** (Chen 외, arXiv:2611.07483, 2026-11-05, v2 11-17) | 자유 텍스트 / 구조화 JSON / 서명 manifest 전달 비교. Qwen3-8B, gpt-oss-20b, gemma-4-12b. 공격 시 unsafe commit 69.4%(구조화) → 9.0%(서명). 서명은 전송 중 변조는 막지만 **추출 단계 오류·조작은 못 막음**(신뢰 경계). 결정적 검증기 78.7% vs LLM 검사기 59.0% | 요구사항 보존 문제. 승인·철회·권한 주장은 초록에 없음. 소형 공개 모델만 |
+| **PCM: A Proof-Carrying Message Protocol for Verifiable Multi-Agent Communication** (Ghosh, arXiv:2610.39109, 2026-10-29) | 메시지의 각 주장에 증거(에이전트가 쓸 수 없는 append-only Merkle 로그 + 별도 서명자)를 첨부. "에이전트 자기 보고만 있는 주장은 절대 proven이 아님". 권한은 사람 승인에서 시작해 좁아지기만 하는 grant chain. 거짓 712개 중 10개 수용(전부 오래된 증거), 일반 A2A는 712개 전부, AP2 등 6개 프로토콜 모델은 504–712개 수용. 코드 공개(github.com/Cygnux-Labs/PCM-protocol) | **가장 강한 경쟁 연구.** 메시지 수용 여부를 측정. LLM 에이전트의 E2E 행동, 업무 완료, 잘못된 거부는 초록에 없음. "unproven" 표시를 LLM이 무시하는지는 다루지 않음(초록 기준) |
+| **Auditable Authorization for LLM Agents: Empirical Evidence Across Model, Harness, and Workflow Layers** (Deng 외, arXiv:2611.19237, 2026-11-14) | 모델·하니스·워크플로 세 경계에서 "승인됐는데 실행 안 됨"과 "거부됐는데 실행됨"을 함께 측정. 모델 3종 패널: 승인 300건 중 7건 미완료, CrewAI 복원 시 672건 중 336건 누락, n8n 59개 중 4개가 Reject 후 실행 | 정상 업무 완료를 측정하는 것 자체는 새롭지 않음. 자연어 권한 주장·서명은 초록에 없음 |
 | **Silence Is Endorsement: Verification-Status Laundering in LLM Agent Pipelines** (arXiv:2609.20211) | 핸드오프에서 "미확인" 표시가 사라지면 위험 승인 증가. 검증 상태를 구조화된 상태로 붙여 다닐 것을 권고 | 우리 선행연구(기록 없음 조건). 서명 실험 아님 |
 | **ResidualAuth** (Choi 외, arXiv:2609.08062, 2026-09) | 철회 가능한 위임에서 에이전트가 보존해야 할 권한 상태. 공개 모델 4종: 신뢰 가능한 Allow/Deny 결정 제공 시 15–16/16, 이벤트 발췌만 0–2/16 | 상태 기억 문제. 자연어 철회 주장은 초록에 없음 |
 | **MasDrift** (Xu 외, arXiv:2608.07556, 2026-08) | 600개 업무, 중앙집중 계층에서 무단 행동 2.7–19.8%. 원 요청 재고정 방어 vs 정책 전파 방어 | 서명 없음(초록 기준). 권한 보존 벤치마크 |
@@ -43,6 +49,33 @@
 | SEAgent, *Taming Various Privilege Escalation* (arXiv:2601.11893) | 권한상승·confused deputy를 MAC(ABAC)로 차단. 서명 아님 |
 | Consent Integrity (arXiv:2606.02668) | 사람 승인 화면을 에이전트 서술이 아닌 실제 행동에서 생성(WYSIWYS) |
 
+## 2a. 서명 토큰 + LLM 파이프라인 실험 (2026-11-18 추가)
+
+| 논문 | 무엇을 했나 | 우리와의 관계 |
+|---|---|---|
+| **Trust propagation and structural containment in Multi-agent LLM pipelines** (Safin, Zisad, Shatabda, Hasan, arXiv:2609.17648, 2026-09-15; **PDF 전문 확인**) | LangGraph 4-에이전트(Supervisor·Researcher·Validator·Executor), gemma4:31b-cloud(Ollama, temperature 0), Enron 메일 헤더를 실행 대상 데이터로, 60개 과제(정상 36·위험 24), seed 3개. 방어: **HMAC** 서명·과제 결합·1회용 토큰 + 독립 policy oracle. (1) 메모리 오염: 방어 없으면 UAR 100%, 방어 시 0%, Validator 침해율(JBR)은 100% 그대로. (2) 서명키를 가진 공격자: 토큰만 100%, oracle만 0% (seed 1개, n=60) → "서명은 출처를 보증할 뿐 권한을 보증하지 않음". (3) **검색 문서에 넣은 위조 승인**: UAR 0%이지만 Validator가 의심해 **정상 과제의 49.1–59.3%를 차단**; "구조적 권한 검증은 Validator 오거부를 해결하지 못함"(§V-A). (4) Observer(위조 승인 문구 제거)로 FPR 49.1%→7.4%. corpus policy는 정답 라벨 기반, 독립 정책도 같은 그룹이 작성. 코드 공개는 찾지 못함 | **우리 결과와 가장 직접적인 선행 실험.** 자연어 권한 주장이 정상 업무 거부를 낳는다는 현상을 다른 방향(위조 *승인* → 의심 → 거부)으로 보고. 서명·게이트가 오거부를 고치지 못한다는 결론은 우리 E3 해석(계획 단계 중단)과 같은 방향. 철회 주장, 공식 기록 제공, 지시 강화는 다루지 않음 |
+| **Authorization Propagation in Agent2Agent Systems: An Experimental Security Evaluation of Multi-Hop Delegation** (Donno, Mehmood, Kralevska, arXiv:2611.07050, 2026-11-04; 초록 확인) | 의료비 청구 4-주체 A2A 워크플로. 호출자 맥락, 전이적 권한 증거, hop별 Ed25519 요청 인증, 재사용 상태를 분리. 적대 조건 15개 중 14개 거부, 위임 경로에서 의미적 권한 축소 없음, **공유 HMAC 증거 키를 가진 중개자는 권한 내용을 바꾸고도 유효한 증거를 만들 수 있음**. 지연 중앙값 5.11 ms. 코드 공개(github.com/GaDonn/a2a-authorization-propagation-poc), **NTNU 석사논문(2026-08) 산출물** | Ed25519 다단계 권한 검증은 이미 석사논문 수준에서 실험됨. 초록에는 LLM·자연어 주장·철회·오거부 없음 |
+
+## 3a. IETF 초안 (사용자 제공 PDF 전문 확인, 2026-11-18)
+
+IETF에서 AUDIT(Agent Use of Delegation and Interaction Traceability) 워킹그룹 결성이 논의 중이다(IETF 127 BoF 요청, 2026-10-08, Izmaylov 초안 §13 기준).
+아래 두 편은 전문을 읽었고, 그 아래 목록은 두 초안이 인용한 것으로 직접 읽지 않았다.
+
+| 초안 | 핵심 | 우리와의 관계 |
+|---|---|---|
+| **draft-izmaylov-agent-permission-receipts-02** (2026-10-31, Standards Track 제안) | 사용자가 **패스키로 서명한 permission**(허용 행동, 상대방, 유효기간, 금액·횟수·기간 한도, 상대방 연서명·건별 승인 조건). 에이전트가 행동마다 Ed25519+ML-DSA-87로 서명한 receipt를 체인으로 남기고, 사용자 서명 **cancellation(철회)**과 에이전트의 **acknowledgement**를 정의. 검증기가 사후에 오프라인으로 "각 행동이 permission 안에 있었나"를 판정. 집행이 아닌 증거(§1, §18) | 서명된 승인·철회 상태 자체는 여기서 정의됨. 서명 없는 자연어 철회 주장, LLM 행동, 계획 단계 중단은 다루지 않음. §13에 AP2 mandate와의 비교 있음 |
+| **draft-gruszka-audit-decision-receipts-10** (2026-11-17, Informational) | 승인(ALLOW)·거부(DENY/REFUSE)·실행 결과를 **서명된 decision receipt / outcome receipt**로 기록, 오프라인 검증 절차와 615개 테스트 벡터. **승인은 최대 1회 사용**(§4). §2.5: 서버가 서명한 승인 기록은 승인자가 실제로 승인했음을 보여주지 않음, 사람 본인 키 서명이 필요. §2.6: 평가 결과(증거)는 권한이 아님 | 결정 기록과 1회 사용 규칙은 여기서 정의됨. "receipt는 아무것도 집행하지 않는다"(§4). LLM 행동은 다루지 않음 |
+
+| **draft-kroehl-agentic-trust-aae-01** (2026-08-11, Independent Submission, Informational) | Agent Authorization Envelope: W3C VC를 Ed25519 JWS로 서명. MANDATE(허용 행동·목적·주체), CONSTRAINTS(건당 금액 상한·도메인·속도 제한, 모르는 필수 제약은 거부), VALIDITY(기간, **revocation_check: 조회 실패 시 거부(fail-closed)**, single_use). 위임 체인은 좁아지기만 함, nonce 기반 소지 증명. 운영 중 배포(MolTrust, 2026-03~)에서 유래 | 서명된 위임장 형식과 철회 조회 실패 시 처리 규칙이 정의됨. 결정 기록(decision receipt)이나 LLM 행동은 없음 |
+
+두 초안이 인용한 관련 초안(직접 읽지 않음): draft-nelson-agent-delegation-receipts(사용자 서명 위임, 좁아지기만 하는 위임, 철회),
+draft-schrock-ep-authorization-receipts(실행 전 승인자 서명, 1회 사용),
+draft-schrock-ep-bounded-capability-receipts(예산 한도, 실행 직전 철회 재확인),
+draft-gilda-audit-agent-audit-record, draft-sharif-agent-audit-trail, draft-kuehlewind-audit-architecture.
+
+**정리:** "승인·철회를 서명으로 하고, 실행 직전 다시 확인하고, 승인은 1회만 쓴다"는 메커니즘은 표준 초안 수준에서 이미 있다.
+확인한 범위에서 이들 중 **LLM이 서명 없는 자연어 권한 주장에 어떻게 반응하는지 측정한 것은 없다.**
+
 ## 4. 산업 쪽 (배경용, 핀테크·디지털 월렛)
 
 - **Google AP2 (Agent Payments Protocol):** 사용자가 서명한 mandate(구매 내용·결제)를 검증 가능한 자격증명으로 전달.
@@ -60,6 +93,11 @@
 ## 출처
 
 - https://arxiv.org/abs/2611.07483
+- https://arxiv.org/abs/2609.17648
+- https://arxiv.org/abs/2611.07050 · https://github.com/GaDonn/a2a-authorization-propagation-poc
+- https://datatracker.ietf.org/doc/html/draft-kroehl-agentic-trust-aae-01
+- https://arxiv.org/abs/2610.39109
+- https://arxiv.org/abs/2611.19237
 - https://arxiv.org/abs/2609.20211
 - https://arxiv.org/abs/2609.08062
 - https://arxiv.org/abs/2608.07556
