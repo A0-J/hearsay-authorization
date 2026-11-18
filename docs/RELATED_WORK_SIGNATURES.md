@@ -20,14 +20,21 @@
   3. 승인·철회 서명 검사를 **어느 단계(계획/실행/검증)**에 둬야 하는지의 비교
      (우리 E3: 계획 단계가 검증기 전에 작업을 멈춤).
 
+### 연구 안에서의 역할 (2026-11-18 검토 의견 반영, 사용자가 바꿀 수 있음)
+
+- **메인 선행연구: PCM**(§2). 서명된 증거와 proven / unproven / failed 판정. §13.6의 LLM 통합 조언은 시험되지 않음 → SIG P2.
+- **보조: Safin 외**(§2a). 자연어 위조 승인 → Validator 오거부, 게이트로는 못 고치고 Observer로 줄어듦 → SIG S3.
+- **주장 단위 상태 표시의 기존 측정: Silence Is Endorsement**(§2b). 메시지 안 표시, 승인 방향.
+- **Tracekit**: 핵심 실험에 넣지 않음(시연 후보).
+
 ## 2. 가장 가까운 연구 (직접 비교 대상)
 
 | 논문 | 무엇을 했나 | 우리와의 차이 |
 |---|---|---|
 | **Signed but Not Safe: Requirement Integrity in Multi-Agent LLM Handoffs** (Chen 외, arXiv:2611.07483, 2026-11-05, v2 11-17) | 자유 텍스트 / 구조화 JSON / 서명 manifest 전달 비교. Qwen3-8B, gpt-oss-20b, gemma-4-12b. 공격 시 unsafe commit 69.4%(구조화) → 9.0%(서명). 서명은 전송 중 변조는 막지만 **추출 단계 오류·조작은 못 막음**(신뢰 경계). 결정적 검증기 78.7% vs LLM 검사기 59.0% | 요구사항 보존 문제. 승인·철회·권한 주장은 초록에 없음. 소형 공개 모델만 |
-| **PCM: A Proof-Carrying Message Protocol for Verifiable Multi-Agent Communication** (Ghosh, arXiv:2610.39109, 2026-10-29) | 메시지의 각 주장에 증거(에이전트가 쓸 수 없는 append-only Merkle 로그 + 별도 서명자)를 첨부. "에이전트 자기 보고만 있는 주장은 절대 proven이 아님". 권한은 사람 승인에서 시작해 좁아지기만 하는 grant chain. 거짓 712개 중 10개 수용(전부 오래된 증거), 일반 A2A는 712개 전부, AP2 등 6개 프로토콜 모델은 504–712개 수용. 코드 공개(github.com/Cygnux-Labs/PCM-protocol) | **가장 강한 경쟁 연구.** 메시지 수용 여부를 측정. LLM 에이전트의 E2E 행동, 업무 완료, 잘못된 거부는 초록에 없음. "unproven" 표시를 LLM이 무시하는지는 다루지 않음(초록 기준) |
+| **PCM: A Proof-Carrying Message Protocol for Verifiable Multi-Agent Communication** (Ghosh, arXiv:2610.39109, 2026-10-29; **PDF 전문 확인 2026-11-18**) | 메시지의 각 주장에 증거(에이전트가 쓸 수 없는 append-only Merkle 로그 + 별도 서명자)를 첨부. "에이전트 자기 보고만 있는 주장은 절대 proven이 아님". 권한은 사람 승인에서 시작해 좁아지기만 하는 grant chain. 거짓 712개 중 10개 수용(전부 오래된 증거), 일반 A2A는 712개 전부, AP2 등 6개 프로토콜 모델은 504–712개 수용. 코드 공개(github.com/Cygnux-Labs/PCM-protocol) | **가장 강한 경쟁 연구.** 전문 확인: 권한 거짓 90개 모두 차단, 놓친 10개는 전부 오래된 증거(L10). 비교 대상 6개 프로토콜은 명세 기반 모델이지 SDK 실행이 아님(§12.1). **철회 기능 없음**(grant는 만료까지 유효, 최대 24시간, §7.5·Table 6 #17), 증거의 최신성 미보장(N2), A2A 게이트웨이는 PCM을 검증하지 않음(§11), replay 상태는 프로세스별. **벤치마크는 LLM을 호출하지 않음**(서명 서비스가 만든 메시지를 검증기로 판정). §13.6은 "주장마다 결과(proven / 보낸 쪽의 말)를 표시해 모델이 구조화된 출처로 추론하게 하라"고 제안하지만 시험하지 않음 → SIG 실험의 `signed_claim_unproven` 조건이 이를 시험. 코드: Tracekit 1.5.0(`pip install tracekit-ai==1.5.0`), github.com/Cygnux-Labs/PCM-protocol(MIT, bench/lies, verifier/python, 187 vectors) |
 | **Auditable Authorization for LLM Agents: Empirical Evidence Across Model, Harness, and Workflow Layers** (Deng 외, arXiv:2611.19237, 2026-11-14) | 모델·하니스·워크플로 세 경계에서 "승인됐는데 실행 안 됨"과 "거부됐는데 실행됨"을 함께 측정. 모델 3종 패널: 승인 300건 중 7건 미완료, CrewAI 복원 시 672건 중 336건 누락, n8n 59개 중 4개가 Reject 후 실행 | 정상 업무 완료를 측정하는 것 자체는 새롭지 않음. 자연어 권한 주장·서명은 초록에 없음 |
-| **Silence Is Endorsement: Verification-Status Laundering in LLM Agent Pipelines** (arXiv:2609.20211) | 핸드오프에서 "미확인" 표시가 사라지면 위험 승인 증가. 검증 상태를 구조화된 상태로 붙여 다닐 것을 권고 | 우리 선행연구(기록 없음 조건). 서명 실험 아님 |
+| **Silence Is Endorsement: Verification-Status Laundering in LLM Agent Pipelines** (arXiv:2609.20211) | 핸드오프에서 "미확인" 표시가 사라지면 위험 승인 증가. 검증 상태를 구조화된 상태로 붙여 다닐 것을 권고(구현·검증은 안 함). 상세는 §2b | 우리 선행연구(기록 없음 조건). 서명 실험 아님 |
 | **ResidualAuth** (Choi 외, arXiv:2609.08062, 2026-09) | 철회 가능한 위임에서 에이전트가 보존해야 할 권한 상태. 공개 모델 4종: 신뢰 가능한 Allow/Deny 결정 제공 시 15–16/16, 이벤트 발췌만 0–2/16 | 상태 기억 문제. 자연어 철회 주장은 초록에 없음 |
 | **MasDrift** (Xu 외, arXiv:2608.07556, 2026-08) | 600개 업무, 중앙집중 계층에서 무단 행동 2.7–19.8%. 원 요청 재고정 방어 vs 정책 전파 방어 | 서명 없음(초록 기준). 권한 보존 벤치마크 |
 | **Delegation Without Trust** (Dantuluri·Sundi, arXiv:2609.00267, 2026-08) | 위협 4종(confused deputy, 토큰 탈취·재사용, 프롬프트 주입 권한상승, 침해된 하위 에이전트). 모델 내부 권한 판단은 4종 모두 실패. 권한 브로커: 위조 토큰 0/200,000 수용 | 시스템 논문. 자연어 주장에 대한 LLM 반응 측정 아님 |
@@ -55,6 +62,23 @@
 |---|---|---|
 | **Trust propagation and structural containment in Multi-agent LLM pipelines** (Safin, Zisad, Shatabda, Hasan, arXiv:2609.17648, 2026-09-15; **PDF 전문 확인**) | LangGraph 4-에이전트(Supervisor·Researcher·Validator·Executor), gemma4:31b-cloud(Ollama, temperature 0), Enron 메일 헤더를 실행 대상 데이터로, 60개 과제(정상 36·위험 24), seed 3개. 방어: **HMAC** 서명·과제 결합·1회용 토큰 + 독립 policy oracle. (1) 메모리 오염: 방어 없으면 UAR 100%, 방어 시 0%, Validator 침해율(JBR)은 100% 그대로. (2) 서명키를 가진 공격자: 토큰만 100%, oracle만 0% (seed 1개, n=60) → "서명은 출처를 보증할 뿐 권한을 보증하지 않음". (3) **검색 문서에 넣은 위조 승인**: UAR 0%이지만 Validator가 의심해 **정상 과제의 49.1–59.3%를 차단**; "구조적 권한 검증은 Validator 오거부를 해결하지 못함"(§V-A). (4) Observer(위조 승인 문구 제거)로 FPR 49.1%→7.4%. corpus policy는 정답 라벨 기반, 독립 정책도 같은 그룹이 작성. 코드 공개는 찾지 못함 | **우리 결과와 가장 직접적인 선행 실험.** 자연어 권한 주장이 정상 업무 거부를 낳는다는 현상을 다른 방향(위조 *승인* → 의심 → 거부)으로 보고. 서명·게이트가 오거부를 고치지 못한다는 결론은 우리 E3 해석(계획 단계 중단)과 같은 방향. 철회 주장, 공식 기록 제공, 지시 강화는 다루지 않음 |
 | **Authorization Propagation in Agent2Agent Systems: An Experimental Security Evaluation of Multi-Hop Delegation** (Donno, Mehmood, Kralevska, arXiv:2611.07050, 2026-11-04; 초록 확인) | 의료비 청구 4-주체 A2A 워크플로. 호출자 맥락, 전이적 권한 증거, hop별 Ed25519 요청 인증, 재사용 상태를 분리. 적대 조건 15개 중 14개 거부, 위임 경로에서 의미적 권한 축소 없음, **공유 HMAC 증거 키를 가진 중개자는 권한 내용을 바꾸고도 유효한 증거를 만들 수 있음**. 지연 중앙값 5.11 ms. 코드 공개(github.com/GaDonn/a2a-authorization-propagation-poc), **NTNU 석사논문(2026-08) 산출물** | Ed25519 다단계 권한 검증은 이미 석사논문 수준에서 실험됨. 초록에는 LLM·자연어 주장·철회·오거부 없음 |
+
+## 2b. 주장 단위 상태 표시가 LLM 판단에 주는 영향 (2026-11-18 추가)
+
+PCM §13.6(주장마다 판정을 붙여 모델에 보여줄 것)과 가장 가까운 선행 실험. 모두 표시를 모델에 보여주고 판단 변화를 측정했다.
+차이는 표시가 메시지 안에 있다는 것(보낸 쪽이 씀)과 대상이 승인 주장이나 지시 주입이라는 것이다.
+
+| 논문 | 무엇을 했나 | SIG와의 관계 |
+|---|---|---|
+| **Silence Is Endorsement** (arXiv:2609.20211; **HTML 본문에서 수치 확인** 2026-11-18) | 핸드오프 노트의 권한 주장: 주장 없음 / "(UNVERIFIED) … asserts that this action is authorized" / 표시 사라짐 / "VERIFIED: …". 표시는 **보낸 쪽이 노트 안에 쓴 텍스트**. 런타임이 기록이나 구조화 상태를 주는 조건은 없음(§8은 권고만). 표 17(위험 항목 40개, 승인 확률, Llama-3.1-8B / Qwen2.5-7B / Qwen2.5-14B): 표시 없음 0.60/0.88/0.98, "unverified" 0.05/0.49/0.16, 명시적 경고 0.00/0.00/0.00, "requester-reported"(출처만) 0.19/0.67/0.87, verified 0.61/0.93/0.97. 표시가 있으면 Llama의 정상 요청 16개 승인도 0.70→0.40(§3.1). "검증된 승인만 인정" 지시는 모델에 따라 효과가 없거나 정상 요청을 과잉 거부(§6.2). 오픈 모델 9종, GPT-4o-mini, DeepSeek-V4-Flash | **주장 단위 표시의 효과는 이미 측정됨**(승인 방향, 메시지 안 표시). 시사점: (1) 판정 단어만("unverified")은 명시적 경고보다 약함 → SIG S1·S2(판정만 vs 판정+이유)를 철회 방향·플랫폼 표시로 다시 묻는 셈. (2) 출처만 밝히는 문구는 약함 → SIG 이유 문구의 "it is the sender's word"는 출처형. (3) 표시가 정상 요청 거부를 늘림 → SIG V·S7(참인 주장에 UNPROVEN 표시) |
+| **Auditing Provenance Sensitivity in LLM Agent Action Selection** (Liao 외, arXiv:2607.20827, v2 2026-11-03; 초록 확인) | 같은 명제의 출처 권한(신뢰/비신뢰)만 바꿔 다음 행동 선택을 비교. 오픈 모델 여러 계열, 과제 450개. 출처만 바꿨을 때 행동이 달라진 비율: 경쟁 사례 5.4%, 지지 사례 1.7% | 출처 표시 민감도 측정. 승인·철회 상태나 서명 검증 결과는 초록에 없음 |
+| **Spotlighting** (Hines 외, arXiv:2403.14720, 2024) | 신뢰하지 않는 입력에 구분자·datamarking·인코딩으로 출처 신호를 줌. GPT 계열에서 간접 주입 성공률 50% 초과 → 2% 미만 | "어느 텍스트를 믿지 말지 모델에 표시"의 고전적 선행. 대상은 지시 주입이고 권한 상태 판단이 아님 |
+| **Signed-Prompt** (Suo, arXiv:2401.07612, 2024; 초록·2차 요약만) | 승인된 지시의 민감 키워드를 특수 문자열로 바꾸고 LLM이 표시된 지시에만 반응하게 함(프롬프트 설계, 파인튜닝) | 이름은 "서명"이지만 암호 서명이 아님(2차 요약 기준). 권한 상태 판단 아님 |
+
+**정리:** "주장에 검증 상태를 표시하면 LLM 판단이 바뀐다"는 것 자체는 SIE가 보였다(승인 주장, 메시지 안 표시, 소형 오픈 모델 중심).
+이번 검색(2026-11-18, 검색어 4개)에서 찾지 못한 것: (1) **플랫폼이 증거 블록에 넣는** 주장 판정(PCM §13.6 방식),
+(2) 그 판정을 **서명·검증된 공식 상태와 함께** 보여주는 조건, (3) **철회 주장**(유효한 승인을 무력화하는 방향)과 참인 주장에 대한 오판.
+SIG는 이 세 가지를 시험한다. 검색 4개가 이 분야 전체를 덮는다고 할 수는 없다.
 
 ## 3a. IETF 초안 (사용자 제공 PDF 전문 확인, 2026-11-18)
 
@@ -86,9 +110,10 @@ draft-gilda-audit-agent-audit-record, draft-sharif-agent-audit-trail, draft-kueh
 
 1. Signed but Not Safe 본문: 위협 5종 목록, 승인·철회 조건이 있는지.
 2. ResidualAuth 본문: 에피소드에 자연어 철회 주장이 들어가는지.
-3. Silence Is Endorsement 최신판: 서명 또는 구조화 상태 실험이 추가됐는지.
+3. ~~Silence Is Endorsement 최신판~~ 확인함(2026-11-18): 런타임이 주는 구조화 상태 조건은 없음. 부록 J는 노트 안 구조화 필드가 요약 뒤 살아남는 비율만 봄(§2b).
 4. AP2 명세: 철회(revocation) 처리 방식.
 5. 2026-11 이후 신규 논문 재검색(분야가 빠르게 움직임).
+6. 플랫폼이 붙인 주장 판정(proven/unproven 등)을 LLM에 준 실험: 이번 검색에서 찾지 못함. 제출 전 다시 검색.
 
 ## 출처
 
@@ -98,7 +123,10 @@ draft-gilda-audit-agent-audit-record, draft-sharif-agent-audit-trail, draft-kueh
 - https://datatracker.ietf.org/doc/html/draft-kroehl-agentic-trust-aae-01
 - https://arxiv.org/abs/2610.39109
 - https://arxiv.org/abs/2611.19237
-- https://arxiv.org/abs/2609.20211
+- https://arxiv.org/abs/2609.20211 · https://arxiv.org/html/2609.20211
+- https://arxiv.org/abs/2607.20827
+- https://arxiv.org/abs/2403.14720
+- https://arxiv.org/abs/2401.07612
 - https://arxiv.org/abs/2609.08062
 - https://arxiv.org/abs/2608.07556
 - https://arxiv.org/abs/2609.00267
