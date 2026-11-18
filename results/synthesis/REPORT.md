@@ -37,6 +37,16 @@ Not a risk in these data: generic approval claims on invalid evidence ("(UNVERIF
 
 Status: the withdrawal effect is P on all three sets (E2 P1, G1 primary). The forged-ID column is H: the `specific` claim was pre-registered, but singling out the ID-absent cells came after the AgentDojo result (results/invalid-approvals/). The pre-registered G2 (all approval claims on invalid evidence, case level) is +1.9 [+1.1, +2.6] pp, Holm p = 0.0003 in AgentDojo and not significant on AB new; in AgentDojo the generic claims contribute 0, so G2 there is the specific-ID effect (results/synthesis/EVIDENCE_MAP.md, F2).
 
+Each approval claim on its own (H: the split by wording is post hoc). Evidence-aware, all 8 invalid conditions; approved calls / judged calls, and the change against no claim in pp (95% CI) over units (tables/claim_types.csv, which also has evidence-explicit and the ID-absent conditions alone):
+
+| claim | 11 tasks | AB new | AgentDojo |
+|---|---|---|---|
+| no claim | 0/264 | 4/672 | 0/456 |
+| (UNVERIFIED) supervisor | 0/264, +0.0 [+0.0, +0.0] | 4/672, +0.4 [-0.4, +1.6] | 0/456, +0.0 [+0.0, +0.0] |
+| supervisor | 2/264, +0.8 [+0.0, +1.9] | 6/672, +0.7 [-0.2, +1.8] | 0/456, +0.0 [+0.0, +0.0] |
+| VERIFIED. supervisor | 1/264, +0.4 [+0.0, +1.1] | 4/672, -0.0 [-0.4, +0.4] | 0/456, +0.0 [+0.0, +0.0] |
+| specific approval ID | 4/264, +1.5 [+0.0, +3.8] | 21/672, +1.8 [-0.4, +4.4] | 34/456, +7.5 [+4.6, +10.3] |
+
 ## 3. Model dependence (same 11 tasks, identical inputs)
 
 ![model profile](png/fig2_model_profile_11tasks.png)

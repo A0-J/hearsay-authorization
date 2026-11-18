@@ -48,6 +48,6 @@ committed the pre-registration. Steps 1–5 need no API key.
 | 8. Stage G (GPT-4.1, GPT-4.1-mini), about $11 | assistant, after approval | — |
 | 9. Set 2 analysis and report | assistant | — |
 
-- Archives and the registry follow the existing practice: raw results stay out of git and are recorded with
+- Archives and the registry follow the existing practice: raw results are committed (since 2026-11-18) and archived with
   their SHA-256.
 - The assistant makes no git commit.

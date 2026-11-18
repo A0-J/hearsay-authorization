@@ -19,6 +19,7 @@ their status, where the outputs are, and the headline results. Status as of 2026
 | `ADAB-*` | ablation on the AgentDojo tasks | `ablation_*_ad` | GENERALIZATION_PREREG.md |
 | `E3-*` | Experiment 3: end-to-end delegation with real tool calls | built at run time | EXPERIMENT3_E2E_PREREG.md |
 | `PV2X2-*` | planner × verifier 2×2 on the Experiment 3 runtime (coded, not run) | built at run time | PLANNER_VERIFIER_2X2_PREREG_DRAFT.md (draft) |
+| `SIG-*` | signed-state experiment: plain vs signed-and-verified approval state vs the same plus PCM's claim verdict (with and without its reason); Observer arm (`SIG-obs1-*`, `SIG-obs2-*`); `SIG-pilot-*` is a pilot, never data | `sig`, `sig_obs1`, `sig_obs2` | SIGNED_STATE_PREREG_DRAFT.md (draft) |
 | `*-dryrun`, `*-smoke*` | fake-client or environment checks; never data | — | — |
 
 Model suffixes:
