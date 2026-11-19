@@ -10,7 +10,7 @@ dataset/sig_obs2/  Observer stage 2: one verifier cell per stage 1 reply (run wi
 
 The build refuses to write if a plain cell differs from the frozen Experiment 1 cell, if deleting the added lines
 of a signed cell does not give the plain input, if a signature does not verify, or if a gate verdict differs from
-the cell's side. See docs/SIGNED_STATE_PREREG_DRAFT.md.
+the cell's side. See docs/SIGNED_STATE_PREREG.md.
 """
 
 from __future__ import annotations
@@ -88,7 +88,7 @@ def write(name: str, version: str, tasks_cells: dict, labels: dict, instructions
         if p.is_file():
             h.update(p.relative_to(out).as_posix().encode() + b"\0" + p.read_bytes())
     n = sum(len(c) for c in tasks_cells.values())
-    manifest = {"dataset": f"hearsay-{name}", "version": version, "prereg": "docs/SIGNED_STATE_PREREG_DRAFT.md",
+    manifest = {"dataset": f"hearsay-{name}", "version": version, "prereg": "docs/SIGNED_STATE_PREREG.md",
                 "task_set": "e1", "authbench_commit": PINNED_COMMIT, "tasks": list(tasks_cells), "cells": n,
                 "cells_per_task": n // max(1, len(tasks_cells)), "tasks_sha256": h.hexdigest(),
                 "spec_sha256": {m: exp1.sha((ROOT / "src" / "hearsay" / "authbench" / m).read_text(encoding="utf-8"))

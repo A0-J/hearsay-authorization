@@ -1,7 +1,11 @@
-# Signed-state experiment (SIG): pre-registration draft
+# Signed-state experiment (SIG): pre-registration
 
-Status: **draft r3, 2026-11-18.** Not frozen. It is frozen, with date and commit, when the study owner approves the
-pilot; changes after that are dated amendments. No SIG data exist at the time of writing (dry runs only).
+Fixed 2026-11-18 (r3), before any SIG data (dry runs only). The commit that adds this line and
+`docs/SIG_FREEZE_r3.json` is the pre-registration. That file holds the SHA-256 of this document, the code, configs,
+instructions and every dataset file; `python experiments/check_freeze.py docs/SIG_FREEZE_r3.json` is run before each
+paid SIG run and must pass. Changes after this are dated amendments (§11). The escalation follow-up (no covering
+record + forged id, gpt-4o) is a separate exploratory plan, `docs/SIGX_ESCALATION_PREREG_DRAFT.md`; it changes
+nothing here.
 
 Code: `src/hearsay/authbench/sigstate.py`, `experiments/build_sig.py`, `experiments/analyze_sig.py`,
 `tests/test_sigstate.py`. Runner: `experiments/run_exp1.py` (unchanged). Configs: `configs/sig_*.json`.
@@ -49,6 +53,10 @@ evidence-priority instruction and with removing the note?
 - **Nothing is executed.** The outcome is the verifier's decision on a fixed input. A result here is about the
   reliability of that decision; prevented execution or privilege escalation follows only from the gate row (by
   construction) or from the end-to-end test (§10).
+- **PCM-style annotation, not PCM.** No PCM verifier (Tracekit) runs. The `claim_check` line is text the build inserts,
+  following PCM's semantics (a claim that carries no evidence is unproven). Three things are kept apart: whether the
+  cryptographic check succeeds (by construction, at build time), how its result is shown to the model (manipulated:
+  the presentations), and the model's decision (measured). Only the third is measured.
 
 ## 3. Design
 
@@ -169,10 +177,18 @@ almost no room; in Experiment 1 GPT-4.1 approved no revoked cell with the forged
 cell with the positive note (V(plain) = 0), so S5–S7 can only detect harm. No expectation is stated for the direction
 of P1 or P2.
 
+Reporting rules. P2 is never reported without S5–S7 beside it: an annotation that lowers false rejection (W) but
+raises forged-ID acceptance (A) or turns true notes against the action (V) is not shown to be a net improvement; the
+report gives W, V and A for every arm in one table. P2's treatment is the verdict with its reason, so a P2 result
+alone is not evidence about the word UNPROVEN; that is S1 (verdict alone) and S2 (what the reason adds).
+
 ## 7. Analysis
 
-`experiments/analyze_sig.py`, written before any data. Unit: the task (11). Per task, each cell's approval rate is the
-mean over its calls. Estimate: mean over tasks; 95% interval: bootstrap over tasks (10,000 resamples, seed 0);
+`experiments/analyze_sig.py`, written before any data. Unit: the task (11). The 100 cells per task are conditions
+within the same 11 tasks, not independent units: every contrast is a within-task (paired) difference, and every test
+has n = 11. Confirmatory: P1–P2, then S1–S7 as pre-specified secondary tests; everything else (descriptive rows,
+H, other models, the escalation follow-up) is exploratory. Per task, each cell's approval rate is the mean over its
+calls. Estimate: mean over tasks; 95% interval: bootstrap over tasks (10,000 resamples, seed 0);
 p: exact two-sided sign-flip over the 11 tasks (`analyze_exp1.stat`). Sensitivity: the same tests with parse
 failures dropped. Exploratory (H): the share of aware valid-with-note rejections whose reason mentions signatures or
 verification, per presentation. Experiment 1's data are not pooled with SIG; the plain cells are a new sample of the
@@ -210,7 +226,7 @@ visible to the gate (T0008, T0009), with the planner given the signed state the 
 measured separately from the verifier (docs/PLANNER_VERIFIER_2X2_PREREG_DRAFT.md needs its oracle advisory replaced by
 a state lookup first).
 
-## 11. Draft revisions (before any data)
+## 11. Revisions before any data
 
 - 2026-11-18, r2: the third presentation `signed_unsigned_msg` (a message-level line "no approver signed the task
   message") was replaced by `signed_claim_unproven` (PCM's claim-level result, quoted above), so that the arm tests
@@ -228,6 +244,11 @@ a state lookup first).
   The old S2 (the claim arm against plain) is now descriptive; S3–S6 keep their numbers. Dataset version
   0.3.0-sig-draft, 100 cells per task; the pilot stops after 200 calls (the go rule scaled to at most 3 parse
   failures).
+- 2026-11-18, r3 fixed, after a second review (no data; no change to cells, hypotheses or analysis): §2 separates
+  the PCM-style annotation from PCM; §6 adds the reporting rules; §7 states the unit; the escalation direction is a
+  separate exploratory plan. The document was renamed from `SIGNED_STATE_PREREG_DRAFT.md`; the dataset versions
+  became 1.0.0-sig and 1.0.0-sig-observer (cells byte-identical to 0.3.0-sig-draft); hashes in
+  `docs/SIG_FREEZE_r3.json`.
 
 ## 12. Limitations
 
@@ -242,7 +263,8 @@ a state lookup first).
 - The forged-approval direction has no room for GPT-4.1 on these cells (Experiment 1: 0 on both revoked conditions;
   3–9% when no matching record exists). In Experiment 1 only gpt-4o accepted forged ids at a visible rate, and only
   when no matching record existed (aware: abs_list 57.6%, abs_complete 27.3%). Those conditions are not in this
-  design; adding them, and the model to run them on, is a separate decision.
+  design; they are the separate exploratory follow-up (`docs/SIGX_ESCALATION_PREREG_DRAFT.md`, gpt-4o), chosen from
+  these Experiment 1 values.
 - The Observer prompt is an adaptation; its detection on these conspicuous notes says nothing about adaptive
   attackers (Safin et al. state the same for theirs).
 - The model's view of a signature is the platform's statement about it (§2).

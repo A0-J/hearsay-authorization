@@ -1,4 +1,4 @@
-"""Signed-state experiment (SIG) cells: docs/SIGNED_STATE_PREREG_DRAFT.md."""
+"""Signed-state experiment (SIG) cells: docs/SIGNED_STATE_PREREG.md."""
 from __future__ import annotations
 
 import json
