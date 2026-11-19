@@ -1,4 +1,4 @@
-"""Signed-state experiment (SIG): items and cells. See docs/SIGNED_STATE_PREREG_DRAFT.md.
+"""Signed-state experiment (SIG): items and cells. See docs/SIGNED_STATE_PREREG.md.
 
 Question: an unsigned natural-language withdrawal note ("the approval for this action was withdrawn") made GPT-4.1
 reject valid, recorded approvals (Experiment 1). Does it still do so when the approval state it sees is presented as
@@ -40,8 +40,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from . import exp1
 from .exp1 import E1Task
 
-SIG_VERSION = "0.3.0-sig-draft"
-OBS_VERSION = "0.1.0-sig-observer-draft"
+SIG_VERSION = "1.0.0-sig"
+OBS_VERSION = "1.0.0-sig-observer"
 
 PRESENTATIONS = ("plain", "signed", "signed_claim_unproven", "signed_claim_label")
 AWARE_ONLY = ("signed_claim_label",)

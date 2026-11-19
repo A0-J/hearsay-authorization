@@ -1,4 +1,4 @@
-"""Analysis of the signed-state experiment (docs/SIGNED_STATE_PREREG_DRAFT.md, section 7). Fixed before any data.
+"""Analysis of the signed-state experiment (docs/SIGNED_STATE_PREREG.md, section 7). Fixed before any data.
 
     python experiments/analyze_sig.py --main SIG-gpt-4.1-run1 --obs1 SIG-obs1-gpt-4.1-run1 --obs2 SIG-obs2-gpt-4.1-run1
 
